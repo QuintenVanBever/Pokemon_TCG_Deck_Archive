@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design 03a — Sleeve Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --navy:      #1A3A5C;
+  --navy-deep: #0E2236;
+  --sky:       #5BC0DE;
+  --sky-l:     #D8EFF8;
+  --yellow:    #F5C518;
+  --yellow-d:  #C49A00;
+  --red:       #D93825;
+  --white:     #FFFFFF;
+  --dark:      #2A2A2A;
+
+  --real-c:    #2E8B57;
+  --proxy-c:   #7B52C4;
+  --missing-c: #CC3333;
+  --ordered-c: #1E78C4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--sky-l);
+  font-family: 'Nunito', sans-serif;
+  color: var(--dark);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Same grid-line texture as homepage */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(26,58,92,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,58,92,0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── TOPBAR — identical to homepage ────────────────── */
+.topbar {
+  position: relative;
+  z-index: 20;
+  background: var(--navy);
+  border-bottom: 4px solid var(--yellow);
+  display: flex;
+  align-items: stretch;
+  height: 54px;
+  flex-shrink: 0;
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border-right: 2px solid rgba(255,255,255,0.1);
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: var(--navy);
+}
+
+.logo-text {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.2rem;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 var(--yellow-d);
+  letter-spacing: 0.3px;
+}
+.logo-text em { font-style: normal; color: var(--sky); }
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.nav-item {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.42);
+  cursor: pointer;
+  padding: 0 1rem;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-item:hover { color: rgba(255,255,255,0.72); }
+.nav-item.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 0.75rem;
+  border-left: 2px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.btn-admin {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.9rem;
+  background: transparent;
+  border: 2px solid var(--sky);
+  color: var(--sky);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-admin:hover { background: var(--sky); color: var(--navy); }
+
+/* ── BODY: two-panel ────────────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── LEFT PANEL ─────────────────────────────────────── */
+.left-panel {
+  background: var(--navy);
+  overflow-y: auto;
+  padding: 16px 0;
+  border-right: 3px solid var(--yellow);
+}
+
+.left-panel::-webkit-scrollbar { width: 4px; }
+.left-panel::-webkit-scrollbar-track { background: transparent; }
+.left-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+
+.left-section-label {
+  padding: 6px 16px 4px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+}
+
+.deck-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px 9px 0;
+  margin: 1px 0;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 4px solid transparent;
+  position: relative;
+}
+
+.deck-item:hover   { background: rgba(255,255,255,0.07); }
+.deck-item.active  { background: rgba(255,255,255,0.11); }
+
+/* Era left stripe colors */
+.deck-item[data-era="hgss"] { border-left-color: var(--yellow); }
+.deck-item[data-era="bw"]   { border-left-color: #888; }
+.deck-item[data-era="xy"]   { border-left-color: #3DAA6A; }
+.deck-item[data-era="sm"]   { border-left-color: var(--red); }
+.deck-item[data-era="swsh"] { border-left-color: var(--sky); }
+.deck-item[data-era="sv"]   { border-left-color: #C03060; }
+
+.deck-item-info {
+  flex: 1;
+  min-width: 0;
+  padding-left: 10px;
+}
+
+.deck-item-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.deck-item-meta {
+  font-size: 10px;
+  color: rgba(255,255,255,0.38);
+  font-weight: 600;
+}
+
+.deck-item-mark {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+/* ── RIGHT PANEL ────────────────────────────────────── */
+.right-panel {
+  overflow-y: auto;
+  padding: 24px 28px 32px;
+  background: var(--sky-l);
+}
+
+.right-panel::-webkit-scrollbar { width: 5px; }
+.right-panel::-webkit-scrollbar-track { background: transparent; }
+.right-panel::-webkit-scrollbar-thumb { background: rgba(26,58,92,0.22); }
+
+/* ── DECK HEADER ────────────────────────────────────── */
+.deck-header {
+  margin-bottom: 20px;
+}
+
+.deck-era-text {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.deck-era-text.hgss { color: var(--yellow-d); }
+.deck-era-text.bw   { color: #666; }
+.deck-era-text.xy   { color: #2E8B57; }
+.deck-era-text.sm   { color: #9A2018; }
+.deck-era-text.swsh { color: #3A8FAA; }
+.deck-era-text.sv   { color: #8A2040; }
+
+.deck-header-name {
+  font-family: 'Fredoka One', cursive;
+  font-size: 30px;
+  color: var(--navy);
+  line-height: 1.05;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.07);
+  margin-bottom: 18px;
+}
+
+/* Four status counters — sharp, no radius */
+.stat-counters {
+  display: flex;
+  gap: 0;
+  margin-bottom: 22px;
+}
+
+.stat-counter {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  border-right: 2px solid var(--sky-l);
+  background: var(--white);
+  position: relative;
+}
+.stat-counter:last-child { border-right: none; }
+
+/* Bright top bar — same palette logic as homepage progress bars */
+.stat-counter::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+}
+.stat-counter.real::before    { background: #3EE080; }
+.stat-counter.proxy::before   { background: #C090FF; }
+.stat-counter.missing::before { background: #FF4444; }
+.stat-counter.ordered::before { background: #44BBFF; }
+
+.stat-counter-val {
+  font-family: 'Fredoka One', cursive;
+  font-size: 28px;
+  line-height: 1;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.stat-counter.real    .stat-counter-val { color: var(--real-c); }
+.stat-counter.proxy   .stat-counter-val { color: var(--proxy-c); }
+.stat-counter.missing .stat-counter-val { color: var(--missing-c); }
+.stat-counter.ordered .stat-counter-val { color: var(--ordered-c); }
+
+.stat-counter-lbl {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #AAAAAA;
+}
+
+/* ── SLEEVE GRID ────────────────────────────────────── */
+.grid-wrap {
+  background: var(--white);
+  padding: 18px;
+  box-shadow: 0 4px 20px rgba(26,58,92,0.1);
+  margin-bottom: 16px;
+}
+
+.grid-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #AAAAAA;
+  margin-bottom: 14px;
+}
+
+.sleeve-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.sleeve {
+  aspect-ratio: 63/88;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.14s;
+}
+.sleeve:hover { transform: translateY(-3px) scale(1.08); z-index: 2; }
+
+/* Real */
+.sleeve.real {
+  background: #FAFAFA;
+  border: 1.5px solid #CCDDDD;
+  box-shadow: inset 0 0 0 2px #F0F8FF;
+}
+.sleeve.real::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(91,192,222,0.25);
+  background: radial-gradient(circle at 50% 42%, rgba(91,192,222,0.15), transparent 65%);
+}
+
+/* Proxy */
+.sleeve.proxy {
+  background: #FFFAE5;
+  border: 1.5px solid #D4B840;
+}
+.sleeve.proxy::before {
+  content: 'P';
+  position: absolute;
+  bottom: 2px; right: 3px;
+  font-size: 6px;
+  font-weight: 900;
+  color: rgba(196,152,0,0.5);
+  font-family: 'Nunito', sans-serif;
+}
+.sleeve.proxy::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(196,152,0,0.2);
+  background: radial-gradient(circle at 50% 42%, rgba(245,197,24,0.2), transparent 65%);
+}
+
+/* Missing */
+.sleeve.missing {
+  background: #1A2030;
+  border: 1.5px dashed rgba(200,200,200,0.2);
+}
+.sleeve.missing::after {
+  content: '×';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: rgba(255,100,100,0.35);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+}
+
+/* Ordered */
+.sleeve.ordered {
+  background: #E8F6FF;
+  border: 1.5px solid #7ABCDC;
+}
+.sleeve.ordered::after {
+  content: '◎';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: rgba(30,120,196,0.45);
+}
+
+/* ── LEGEND ─────────────────────────────────────────── */
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 20px;
+  border: 1.5px solid rgba(0,0,0,0.14);
+}
+.legend-swatch.real    { background: #FAFAFA; border-color: #CCDDDD; }
+.legend-swatch.proxy   { background: #FFFAE5; border-color: #D4B840; }
+.legend-swatch.missing { background: #1A2030; border-color: rgba(200,200,200,0.3); }
+.legend-swatch.ordered { background: #E8F6FF; border-color: #7ABCDC; }
+
+/* ── ACTION BUTTONS — sharp, matching homepage btn style */
+.deck-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.action-btn {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 1.1rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.14s, box-shadow 0.14s;
+}
+.action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.14); }
+
+.action-btn.primary   { background: var(--navy); color: var(--yellow); }
+.action-btn.secondary {
+  background: rgba(26,58,92,0.09);
+  color: var(--navy);
+  border: 2px solid rgba(26,58,92,0.2);
+}
+
+/* ── TOOLTIP ────────────────────────────────────────── */
+.sleeve[data-card]:hover::before {
+  content: attr(data-card);
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--navy);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 4px 8px;
+  z-index: 10;
+  font-family: 'Nunito', sans-serif;
+  pointer-events: none;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR — same as homepage ───────────────────── -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">DA</div>
+    <div class="logo-text">Deck <em>Archive</em></div>
+  </div>
+  <nav class="topbar-nav">
+    <div class="nav-item active">Decks</div>
+    <div class="nav-item">Buy List</div>
+    <div class="nav-item">Formats</div>
+    <div class="nav-item">Stats</div>
+  </nav>
+  <div class="topbar-right">
+    <button class="btn-admin">Admin ↗</button>
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- LEFT: deck list -->
+  <div class="left-panel">
+
+    <div class="left-section-label">HGSS Block</div>
+
+    <div class="deck-item active" data-era="hgss" onclick="showDeck('magnezone')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Magnezone Prime</div>
+        <div class="deck-item-meta">60 cards · All Real</div>
+      </div>
+      <div class="deck-item-mark" style="color:#3EE080">✔</div>
+    </div>
+
+    <div class="deck-item" data-era="hgss" onclick="showDeck('reshiram')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Reshiram &amp; Typhlosion</div>
+        <div class="deck-item-meta">10 missing</div>
+      </div>
+      <div class="deck-item-mark" style="color:#FF6655">!</div>
+    </div>
+
+    <div class="left-section-label" style="margin-top:10px">BW Block</div>
+
+    <div class="deck-item" data-era="bw" onclick="showDeck('blastoise')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Blastoise / Keldeo</div>
+        <div class="deck-item-meta">12 proxied</div>
+      </div>
+      <div class="deck-item-mark" style="color:var(--yellow)">✔</div>
+    </div>
+
+    <div class="left-section-label" style="margin-top:10px">XY Block</div>
+
+    <div class="deck-item" data-era="xy" onclick="showDeck('nightmarch')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Night March</div>
+        <div class="deck-item-meta">10 on order</div>
+      </div>
+      <div class="deck-item-mark" style="color:#44BBFF">◎</div>
+    </div>
+
+    <div class="left-section-label" style="margin-top:10px">Sun &amp; Moon</div>
+
+    <div class="deck-item" data-era="sm" onclick="showDeck('zoroark')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Zoroark-GX Control</div>
+        <div class="deck-item-meta">6 proxied</div>
+      </div>
+      <div class="deck-item-mark" style="color:var(--yellow)">✔</div>
+    </div>
+
+    <div class="left-section-label" style="margin-top:10px">Sword &amp; Shield</div>
+
+    <div class="deck-item" data-era="swsh" onclick="showDeck('mew')">
+      <div class="deck-item-info">
+        <div class="deck-item-name">Mew VMAX</div>
+        <div class="deck-item-meta">15 missing</div>
+      </div>
+      <div class="deck-item-mark" style="color:#FF6655">!</div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: sleeve grid -->
+  <div class="right-panel">
+
+    <div class="deck-header">
+      <div class="deck-era-text hgss" id="deck-era">HGSS Block · Lightning</div>
+      <div class="deck-header-name" id="deck-name">Magnezone Prime &amp; Eelektrik</div>
+
+      <div class="stat-counters">
+        <div class="stat-counter real">
+          <span class="stat-counter-val" id="count-real">60</span>
+          <span class="stat-counter-lbl">Real</span>
+        </div>
+        <div class="stat-counter proxy">
+          <span class="stat-counter-val" id="count-proxy">0</span>
+          <span class="stat-counter-lbl">Proxy</span>
+        </div>
+        <div class="stat-counter missing">
+          <span class="stat-counter-val" id="count-missing">0</span>
+          <span class="stat-counter-lbl">Missing</span>
+        </div>
+        <div class="stat-counter ordered">
+          <span class="stat-counter-val" id="count-ordered">0</span>
+          <span class="stat-counter-lbl">Ordered</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="grid-label">All 60 cards · hover for card name</div>
+      <div class="sleeve-grid" id="sleeve-grid"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch real"></div> Real</div>
+      <div class="legend-item"><div class="legend-swatch proxy"></div> Proxy</div>
+      <div class="legend-item"><div class="legend-swatch ordered"></div> Ordered</div>
+      <div class="legend-item"><div class="legend-swatch missing"></div> Missing</div>
+    </div>
+
+    <div class="deck-actions">
+      <button class="action-btn primary">Generate Proxy PDF</button>
+      <button class="action-btn secondary">Export Decklist</button>
+      <button class="action-btn secondary">Era Rules</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const DECKS = {
+  magnezone: {
+    name: 'Magnezone Prime &amp; Eelektrik',
+    era: 'HGSS Block · Lightning', eraClass: 'hgss',
+    real: 60, proxy: 0, missing: 0, ordered: 0,
+    cards: [
+      {name:'Magnezone Prime',        count:3,  status:'real'},
+      {name:'Magneton',               count:3,  status:'real'},
+      {name:'Magnemite',              count:4,  status:'real'},
+      {name:'Eelektrik',              count:4,  status:'real'},
+      {name:'Tynamo',                 count:4,  status:'real'},
+      {name:'Cleffa',                 count:2,  status:'real'},
+      {name:'Professor Juniper',      count:4,  status:'real'},
+      {name:'N',                      count:4,  status:'real'},
+      {name:'Junk Arm',               count:4,  status:'real'},
+      {name:'Rare Candy',             count:4,  status:'real'},
+      {name:'Ultra Ball',             count:4,  status:'real'},
+      {name:'Switch',                 count:4,  status:'real'},
+      {name:'Lost World',             count:2,  status:'real'},
+      {name:'Pokémon Communication',  count:4,  status:'real'},
+      {name:'Lightning Energy',       count:11, status:'real'},
+    ]
+  },
+  reshiram: {
+    name: 'Reshiram &amp; Typhlosion',
+    era: 'HGSS Block · Fire', eraClass: 'hgss',
+    real: 42, proxy: 8, missing: 10, ordered: 0,
+    cards: [
+      {name:'Reshiram',          count:3,  status:'real'},
+      {name:'Typhlosion Prime',  count:3,  status:'real'},
+      {name:'Quilava',           count:3,  status:'real'},
+      {name:'Cyndaquil',         count:4,  status:'real'},
+      {name:'Ninetales',         count:2,  status:'proxy'},
+      {name:'Vulpix',            count:2,  status:'proxy'},
+      {name:'Cleffa',            count:2,  status:'real'},
+      {name:'Professor Juniper', count:4,  status:'real'},
+      {name:'N',                 count:4,  status:'real'},
+      {name:'Junk Arm',          count:4,  status:'missing'},
+      {name:'Rare Candy',        count:4,  status:'missing'},
+      {name:'Ultra Ball',        count:4,  status:'proxy'},
+      {name:'Switch',            count:3,  status:'missing'},
+      {name:'Fire Energy',       count:12, status:'real'},
+    ]
+  },
+  blastoise: {
+    name: 'Blastoise / Keldeo-EX',
+    era: 'BW Block · Water', eraClass: 'bw',
+    real: 48, proxy: 12, missing: 0, ordered: 0,
+    cards: [
+      {name:'Blastoise',                   count:3,  status:'real'},
+      {name:'Wartortle',                   count:3,  status:'real'},
+      {name:'Squirtle',                    count:4,  status:'real'},
+      {name:'Keldeo-EX',                   count:3,  status:'real'},
+      {name:'Black Kyurem-EX',             count:2,  status:'real'},
+      {name:'Professor Juniper',           count:4,  status:'real'},
+      {name:'N',                           count:4,  status:'real'},
+      {name:'Colress',                     count:3,  status:'proxy'},
+      {name:'Skyla',                       count:3,  status:'proxy'},
+      {name:'Rare Candy',                  count:4,  status:'real'},
+      {name:'Ultra Ball',                  count:4,  status:'proxy'},
+      {name:'Superior Energy Retrieval',   count:4,  status:'real'},
+      {name:'Tropical Beach',              count:2,  status:'proxy'},
+      {name:'Float Stone',                 count:2,  status:'proxy'},
+      {name:'Water Energy',                count:11, status:'real'},
+    ]
+  },
+  nightmarch: {
+    name: 'Night March',
+    era: 'XY Block · Psychic', eraClass: 'xy',
+    real: 50, proxy: 0, missing: 0, ordered: 10,
+    cards: [
+      {name:'Joltik',              count:4, status:'real'},
+      {name:'Pumpkaboo',           count:4, status:'real'},
+      {name:'Lampent',             count:4, status:'real'},
+      {name:'Mew-EX',              count:2, status:'ordered'},
+      {name:'Teammates',           count:2, status:'real'},
+      {name:'Professor Sycamore',  count:4, status:'real'},
+      {name:'N',                   count:2, status:'real'},
+      {name:'Battle Compressor',   count:4, status:'real'},
+      {name:'VS Seeker',           count:4, status:'ordered'},
+      {name:'Ultra Ball',          count:4, status:'real'},
+      {name:'Puzzle of Time',      count:4, status:'real'},
+      {name:'Escape Rope',         count:2, status:'ordered'},
+      {name:'Float Stone',         count:2, status:'ordered'},
+      {name:'Dimension Valley',    count:3, status:'real'},
+      {name:'DCE',                 count:4, status:'real'},
+      {name:'Psychic Energy',      count:5, status:'real'},
+    ]
+  },
+  zoroark: {
+    name: 'Zoroark-GX Control',
+    era: 'SM Block · Darkness', eraClass: 'sm',
+    real: 54, proxy: 6, missing: 0, ordered: 0,
+    cards: [
+      {name:'Zoroark-GX',                count:4, status:'real'},
+      {name:'Zorua',                     count:4, status:'real'},
+      {name:'Sableye',                   count:3, status:'real'},
+      {name:'Exeggcute',                 count:1, status:'real'},
+      {name:'Brigette',                  count:1, status:'real'},
+      {name:'Professor Kukui',           count:4, status:'real'},
+      {name:'Guzma',                     count:4, status:'real'},
+      {name:'Acerola',                   count:2, status:'real'},
+      {name:'Puzzle of Time',            count:4, status:'real'},
+      {name:'Ultra Ball',                count:4, status:'real'},
+      {name:'VS Seeker',                 count:4, status:'proxy'},
+      {name:'Float Stone',               count:2, status:'proxy'},
+      {name:'Choice Band',               count:3, status:'real'},
+      {name:'Field Blower',              count:2, status:'real'},
+      {name:'Double Colorless Energy',   count:4, status:'real'},
+      {name:'Darkness Energy',           count:8, status:'real'},
+    ]
+  },
+  mew: {
+    name: 'Mew VMAX',
+    era: 'SwSh Block · Psychic', eraClass: 'swsh',
+    real: 30, proxy: 15, missing: 15, ordered: 0,
+    cards: [
+      {name:'Mew VMAX',              count:4, status:'real'},
+      {name:'Mew V',                 count:4, status:'real'},
+      {name:'Genesect V',            count:4, status:'proxy'},
+      {name:'Meloetta',              count:2, status:'missing'},
+      {name:'Cram-o-matic',          count:2, status:'real'},
+      {name:"Boss's Orders",         count:2, status:'proxy'},
+      {name:"Elesa's Sparkle",       count:4, status:'missing'},
+      {name:'Quick Ball',            count:4, status:'real'},
+      {name:'Level Ball',            count:4, status:'real'},
+      {name:'Fusion Strike Energy',  count:8, status:'proxy'},
+      {name:'Twin Energy',           count:4, status:'real'},
+      {name:'Power Tablet',          count:4, status:'missing'},
+      {name:'Battle VIP Pass',       count:4, status:'proxy'},
+      {name:'Psychic Energy',        count:4, status:'missing'},
+      {name:'Choice Belt',           count:2, status:'missing'},
+      {name:'Path to the Peak',      count:2, status:'missing'},
+      {name:'Marnie',                count:2, status:'real'},
+      {name:'Collapsed Stadium',     count:2, status:'real'},
+      {name:'Air Balloon',           count:2, status:'proxy'},
+    ]
+  }
+};
+
+function buildSleeveArray(deck) {
+  const slots = [];
+  for (const card of deck.cards) {
+    for (let i = 0; i < card.count; i++) {
+      slots.push({ name: card.name, status: card.status });
+    }
+  }
+  while (slots.length < 60) slots.push({ name: '?', status: 'real' });
+  return slots.slice(0, 60);
+}
+
+function showDeck(key) {
+  const deck = DECKS[key];
+
+  document.getElementById('deck-name').innerHTML = deck.name;
+  const eraEl = document.getElementById('deck-era');
+  eraEl.textContent = deck.era;
+  eraEl.className = 'deck-era-text ' + deck.eraClass;
+
+  document.getElementById('count-real').textContent    = deck.real;
+  document.getElementById('count-proxy').textContent   = deck.proxy;
+  document.getElementById('count-missing').textContent = deck.missing;
+  document.getElementById('count-ordered').textContent = deck.ordered;
+
+  const grid = document.getElementById('sleeve-grid');
+  grid.innerHTML = '';
+  for (const slot of buildSleeveArray(deck)) {
+    const el = document.createElement('div');
+    el.className = `sleeve ${slot.status}`;
+    el.setAttribute('data-card', slot.name);
+    grid.appendChild(el);
+  }
+
+  document.querySelectorAll('.deck-item').forEach(el => el.classList.remove('active'));
+  const idx = Object.keys(DECKS).indexOf(key);
+  document.querySelectorAll('.deck-item')[idx]?.classList.add('active');
+}
+
+showDeck('magnezone');
+</script>
+</body>
+</html>

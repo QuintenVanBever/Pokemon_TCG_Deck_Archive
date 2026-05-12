@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design 03d — Homepage · Deckbox Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --navy:      #1A3A5C;
+  --navy-deep: #0E2236;
+  --sky:       #5BC0DE;
+  --yellow:    #F5C518;
+  --yellow-d:  #C49A00;
+  --red:       #D93825;
+  --white:     #FAFAFA;
+  --real:    #2E8B57;
+  --proxy:   #7B52C4;
+  --missing: #CC3333;
+  --ordered: #1E78C4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #D8EFF8;
+  font-family: 'Nunito', sans-serif;
+  color: var(--navy);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(26,58,92,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,58,92,0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  position: relative;
+  z-index: 20;
+  background: var(--navy);
+  border-bottom: 4px solid var(--yellow);
+  display: flex;
+  align-items: stretch;
+  height: 54px;
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border-right: 2px solid rgba(255,255,255,0.1);
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fredoka One', cursive;
+  font-size: 13px;
+  color: var(--navy);
+}
+
+.logo-text {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.2rem;
+  color: var(--yellow);
+  text-shadow: 2px 2px 0 var(--yellow-d);
+  letter-spacing: 0.3px;
+}
+.logo-text em { font-style: normal; color: var(--sky); }
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.nav-item {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.42);
+  cursor: pointer;
+  padding: 0 1rem;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-item:hover { color: rgba(255,255,255,0.72); }
+.nav-item.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 0.75rem;
+  border-left: 2px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.header-stat {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.38);
+}
+.header-stat strong { color: rgba(255,255,255,0.72); font-size: 0.82rem; }
+
+.btn-admin {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.9rem;
+  background: transparent;
+  border: 2px solid var(--sky);
+  color: var(--sky);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-admin:hover { background: var(--sky); color: var(--navy); }
+
+/* ── FILTER STRIPS ──────────────────────────────────── */
+.filter-strip {
+  position: relative;
+  z-index: 10;
+  background: var(--navy-deep);
+  height: 38px;
+  display: flex;
+  align-items: stretch;
+  padding: 0 1.5rem;
+  gap: 2px;
+}
+.filter-strip + .filter-strip {
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.filter-strip:last-of-type {
+  border-bottom: 2px solid rgba(91,192,222,0.18);
+}
+
+.strip-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.22);
+  margin-right: 0.6rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 88px; /* align both strip labels */
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0.65rem;
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,0.32);
+  transition: background 0.14s, color 0.14s;
+  white-space: nowrap;
+}
+.filter-chip:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.65);
+}
+.filter-chip.active { color: var(--navy-deep); }
+
+.chip-swatch {
+  width: 7px; height: 7px;
+  flex-shrink: 0;
+}
+
+/* ── PAGE BODY ──────────────────────────────────────── */
+.page-body {
+  position: relative;
+  z-index: 1;
+  padding: 2rem 2rem 6rem;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.section-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 2px solid rgba(26,58,92,0.14);
+}
+
+.section-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(26,58,92,0.32);
+}
+
+.section-count {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(26,58,92,0.22);
+}
+
+/* ── DECK GRID — responsive auto-fill ──────────────── */
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 2.25rem 1.75rem;
+}
+
+/* ── DECK ENTRY ─────────────────────────────────────── */
+.deck-entry {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+}
+.deck-entry.hidden { display: none; }
+
+/* ── CARDS FAN ──────────────────────────────────────── */
+.cards-fan {
+  position: relative;
+  height: 106px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.card-preview {
+  position: absolute;
+  bottom: 0;
+  width: 80px;
+  height: 112px;
+  border: 1.5px solid rgba(0,0,0,0.5);
+  background: #F8F8F8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: bottom center;
+  transition: transform 0.36s cubic-bezier(0.34, 1.4, 0.64, 1);
+  box-shadow: 2px 4px 10px rgba(0,0,0,0.26), 0 0 0 0.5px rgba(0,0,0,0.18);
+}
+
+.card-preview[data-pos="left"]   { transform: rotate(-11deg); z-index: 1; }
+.card-preview[data-pos="center"] { transform: rotate(0deg);   z-index: 3; }
+.card-preview[data-pos="right"]  { transform: rotate(11deg);  z-index: 2; }
+.card-preview[data-pos="left2"]  { transform: rotate(-8deg);  z-index: 1; }
+.card-preview[data-pos="right2"] { transform: rotate(8deg);   z-index: 2; }
+
+.deck-entry:hover .card-preview[data-pos="left"]   { transform: rotate(-23deg) translateY(-4px); }
+.deck-entry:hover .card-preview[data-pos="center"] { transform: rotate(0deg)   translateY(-10px); }
+.deck-entry:hover .card-preview[data-pos="right"]  { transform: rotate(23deg)  translateY(-4px); }
+.deck-entry:hover .card-preview[data-pos="left2"]  { transform: rotate(-18deg) translateY(-7px); }
+.deck-entry:hover .card-preview[data-pos="right2"] { transform: rotate(18deg)  translateY(-7px); }
+
+/* Mini TCG card anatomy */
+.card-header {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.card-type-label {
+  font-family: 'Fredoka One', cursive;
+  font-size: 4.6px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 54px;
+  text-overflow: ellipsis;
+}
+.card-hp {
+  font-size: 4.8px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.88);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.card-art {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  margin: 2px 2px 0;
+}
+.card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.13) 0%, transparent 55%),
+    linear-gradient(315deg, rgba(0,0,0,0.07) 0%, transparent 55%);
+}
+
+.card-name-row {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.88);
+}
+.card-name-str {
+  font-family: 'Fredoka One', cursive;
+  font-size: 5.2px;
+  color: #181818;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.card-footer-strip {
+  height: 8px;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+/* ── DECKBOX ────────────────────────────────────────── */
+.deckbox {
+  height: 88px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.deck-entry:hover .deckbox {
+  transform: translate(-4px, -4px);
+}
+
+.deckbox-rim {
+  height: 5px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.2);
+}
+
+.deckbox-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 0.75rem;
+}
+
+.deckbox-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.deckbox-name {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.92rem;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.96);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.deckbox-sub {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.48);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.deckbox-pct {
+  text-align: right;
+  flex-shrink: 0;
+}
+.pct-val {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: rgba(255,255,255,0.94);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.pct-lbl {
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.38);
+  margin-top: 1px;
+}
+
+.deckbox-bar {
+  height: 5px;
+  display: flex;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.15);
+}
+.bar-seg { height: 100%; }
+
+/* ── STATUS FOOTER ──────────────────────────────────── */
+.status-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 44px;
+  background: var(--navy);
+  border-top: 3px solid var(--yellow);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  gap: 1.25rem;
+}
+
+.footer-brand {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.7rem;
+  color: var(--yellow);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+.footer-brand-mark {
+  width: 11px; height: 11px;
+  background: var(--yellow);
+  display: block;
+  flex-shrink: 0;
+}
+
+.fdiv {
+  width: 1px; height: 20px;
+  background: rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.footer-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+.f-dot { width: 8px; height: 8px; flex-shrink: 0; }
+.f-val { font-weight: 900; color: #fff; }
+.f-lbl { color: rgba(255,255,255,0.32); font-size: 0.64rem; }
+
+.footer-end {
+  margin-left: auto;
+  font-size: 0.64rem;
+  color: rgba(255,255,255,0.22);
+}
+.footer-end strong { color: rgba(255,255,255,0.48); }
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-mark">DA</div>
+    <div class="logo-text">Deck <em>Archive</em></div>
+  </div>
+  <nav class="topbar-nav">
+    <div class="nav-item active">Decks</div>
+    <div class="nav-item">Buy List</div>
+    <div class="nav-item">Formats</div>
+    <div class="nav-item">Stats</div>
+  </nav>
+  <div class="topbar-right">
+    <div class="header-stat" id="headerStat"></div>
+    <button class="btn-admin">Admin ↗</button>
+  </div>
+</header>
+
+<div class="filter-strip" id="energyFilter"></div>
+<div class="filter-strip" id="eraFilter"></div>
+
+<div class="page-body">
+  <div class="section-bar">
+    <span class="section-title">Competitive Decks</span>
+    <span class="section-count" id="sectionCount"></span>
+  </div>
+  <div class="deck-grid" id="deckGrid"></div>
+</div>
+
+<footer class="status-footer" id="statusFooter"></footer>
+
+<script>
+
+/* ── DATA ──────────────────────────────────────────── */
+
+const ENERGY = {
+  fire:      { color: '#C8391A', dark: '#6A1508', art: 'radial-gradient(ellipse 70% 80% at 45% 65%, #FF9966 0%, #D94020 45%, #7A1A08 100%)', abbr: 'FIRE',    label: 'Fire' },
+  water:     { color: '#1560B8', dark: '#082860', art: 'radial-gradient(ellipse 60% 70% at 50% 60%, #99CCFF 0%, #1560B8 50%, #082860 100%)', abbr: 'WATER',   label: 'Water' },
+  grass:     { color: '#257A35', dark: '#0C3818', art: 'radial-gradient(ellipse 65% 75% at 50% 65%, #88DD88 0%, #257A35 50%, #0C3818 100%)', abbr: 'GRASS',   label: 'Grass' },
+  lightning: { color: '#B88A00', dark: '#5A4200', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #FFE066 0%, #C09010 55%, #6A5000 100%)', abbr: 'LIGHTN',  label: 'Lightning' },
+  psychic:   { color: '#8828A0', dark: '#401058', art: 'radial-gradient(ellipse 60% 70% at 50% 50%, #DDA8EE 0%, #9030A0 50%, #481858 100%)', abbr: 'PSYCHIC', label: 'Psychic' },
+  fighting:  { color: '#A02818', dark: '#501008', art: 'radial-gradient(ellipse 65% 75% at 40% 60%, #D07060 0%, #A82818 50%, #581008 100%)', abbr: 'FIGHT',   label: 'Fighting' },
+  darkness:  { color: '#382068', dark: '#140830', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #8868C8 0%, #3A2068 50%, #160830 100%)', abbr: 'DARK',    label: 'Darkness' },
+  metal:     { color: '#556080', dark: '#243040', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #C8D8E8 0%, #607090 55%, #283040 100%)', abbr: 'METAL',   label: 'Metal' },
+  dragon:    { color: '#2A4090', dark: '#0C1848', art: 'linear-gradient(150deg, #2A4090 0%, #5830A8 50%, #2A4090 100%)',                      abbr: 'DRAGON',  label: 'Dragon' },
+  colorless: { color: '#6A6050', dark: '#302C28', art: 'radial-gradient(ellipse 60% 70% at 50% 50%, #C8C0B0 0%, #706858 55%, #342E28 100%)', abbr: 'CLR',     label: 'Colorless' },
+};
+
+const ERAS = {
+  HGSS: { color: '#B88A00', dark: '#6A5000', label: 'HGSS' },
+  BW:   { color: '#505050', dark: '#202020', label: 'BW' },
+  XY:   { color: '#207035', dark: '#0A3018', label: 'XY' },
+  SM:   { color: '#B03818', dark: '#581808', label: 'SM' },
+  SwSh: { color: '#1868A0', dark: '#083050', label: 'SwSh' },
+  SV:   { color: '#A01838', dark: '#500818', label: 'SV' },
+};
+
+const STATUS_COLORS = {
+  real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4'
+};
+
+// Brighter variants used for the deckbox progress bar
+const BAR_COLORS = {
+  real:    '#3EE080',
+  proxy:   '#C090FF',
+  missing: '#FF4444',
+  ordered: '#44BBFF',
+};
+
+const DECKS = [
+  {
+    id: 'magnezone', name: 'Magnezone Prime', era: 'HGSS', format: 'Modified',
+    energy: 'lightning',
+    counts: { real: 55, proxy: 5, missing: 0, ordered: 0 },
+    featuredCards: [
+      { name: 'Magnezone Prime', type: 'lightning', hp: 140 },
+      { name: 'Emboar',          type: 'fire',      hp: 150 },
+      { name: 'Cleffa',          type: 'colorless', hp: 30  },
+    ]
+  },
+  {
+    id: 'mewtwo', name: 'CMT · Mewtwo EX', era: 'BW', format: 'Modified',
+    energy: 'psychic',
+    counts: { real: 54, proxy: 2, missing: 4, ordered: 0 },
+    featuredCards: [
+      { name: 'Mewtwo EX',    type: 'psychic', hp: 170 },
+      { name: 'Tornadus EX',  type: 'grass',   hp: 160 },
+      { name: 'Celebi Prime', type: 'grass',   hp: 60  },
+    ]
+  },
+  {
+    id: 'yveltal', name: 'Yveltal EX / Garb', era: 'XY', format: 'Modified',
+    energy: 'darkness',
+    counts: { real: 32, proxy: 8, missing: 12, ordered: 8 },
+    featuredCards: [
+      { name: 'Yveltal EX', type: 'darkness', hp: 170 },
+      { name: 'Garbodor',   type: 'psychic',  hp: 100 },
+    ]
+  },
+  {
+    id: 'buzzwole', name: 'Buzzwole GX / Lyc', era: 'SM', format: 'Standard',
+    energy: 'fighting',
+    counts: { real: 49, proxy: 0, missing: 0, ordered: 11 },
+    featuredCards: [
+      { name: 'Buzzwole GX', type: 'fighting', hp: 190 },
+      { name: 'Lycanroc GX', type: 'fighting', hp: 200 },
+      { name: 'Octillery',   type: 'water',    hp: 90  },
+    ]
+  },
+  {
+    id: 'zacian', name: 'ADP / Zacian V', era: 'SwSh', format: 'Standard',
+    energy: 'metal',
+    counts: { real: 44, proxy: 6, missing: 7, ordered: 3 },
+    featuredCards: [
+      { name: 'Zacian V', type: 'metal',  hp: 220 },
+      { name: 'ADP GX',   type: 'dragon', hp: 280 },
+    ]
+  },
+  {
+    id: 'charizard', name: 'Charizard ex / Pid', era: 'SV', format: 'Standard',
+    energy: 'fire',
+    counts: { real: 23, proxy: 8, missing: 16, ordered: 13 },
+    featuredCards: [
+      { name: 'Charizard ex', type: 'fire',      hp: 330 },
+      { name: 'Pidgeot ex',   type: 'colorless', hp: 280 },
+      { name: 'Arven',        type: 'colorless', hp: 0   },
+    ]
+  },
+];
+
+/* ── BUILDERS ──────────────────────────────────────── */
+
+function makeCard(card, pos) {
+  const e = ENERGY[card.type] || ENERGY.colorless;
+  const isTrainer = !card.hp;
+  return `
+    <div class="card-preview" data-pos="${pos}">
+      <div class="card-header" style="background:${e.color}">
+        <span class="card-type-label">${isTrainer ? 'TRAINER' : e.abbr}</span>
+        ${card.hp ? `<span class="card-hp">HP${card.hp}</span>` : ''}
+      </div>
+      <div class="card-art" style="background:${e.art}"></div>
+      <div class="card-name-row">
+        <span class="card-name-str">${card.name}</span>
+      </div>
+      <div class="card-footer-strip" style="background:${e.color}"></div>
+    </div>`;
+}
+
+function makeDeckEntry(deck) {
+  const e   = ENERGY[deck.energy];
+  const tot = Object.values(deck.counts).reduce((a, b) => a + b, 0);
+  const realPct = Math.round((deck.counts.real / tot) * 100);
+
+  const cards = deck.featuredCards.slice(0, 3);
+  let fanHTML = '';
+  if (cards.length === 1) {
+    fanHTML = makeCard(cards[0], 'center');
+  } else if (cards.length === 2) {
+    fanHTML = makeCard(cards[0], 'left2') + makeCard(cards[1], 'right2');
+  } else {
+    fanHTML = makeCard(cards[0], 'left') + makeCard(cards[1], 'center') + makeCard(cards[2], 'right');
+  }
+
+  const barSegs = ['real','proxy','ordered','missing']
+    .filter(s => deck.counts[s] > 0)
+    .map(s => `<div class="bar-seg" style="flex:${deck.counts[s]};background:${BAR_COLORS[s]}"></div>`)
+    .join('');
+
+  return `
+    <div class="deck-entry" data-energy="${deck.energy}" data-era="${deck.era}" data-id="${deck.id}">
+      <div class="cards-fan">${fanHTML}</div>
+      <div class="deckbox"
+           style="background:${e.color};box-shadow:5px 5px 0 0 ${e.dark}">
+        <div class="deckbox-rim"></div>
+        <div class="deckbox-body">
+          <div class="deckbox-text">
+            <div class="deckbox-name">${deck.name}</div>
+            <div class="deckbox-sub">${deck.era} · ${deck.format}</div>
+          </div>
+          <div class="deckbox-pct">
+            <div class="pct-val">${realPct}%</div>
+            <div class="pct-lbl">Real</div>
+          </div>
+        </div>
+        <div class="deckbox-bar">${barSegs}</div>
+      </div>
+    </div>`;
+}
+
+function makeEnergyChips() {
+  const used = [...new Set(DECKS.map(d => d.energy))];
+  const all = `<button class="filter-chip active" data-energy="all">All Types</button>`;
+  const chips = used.map(ek => {
+    const e = ENERGY[ek];
+    return `<button class="filter-chip" data-energy="${ek}">
+      <span class="chip-swatch" style="background:${e.color}"></span>${e.label}
+    </button>`;
+  });
+  return `<span class="strip-label">Energy Type</span>` + all + chips.join('');
+}
+
+function makeEraChips() {
+  const used = [...new Set(DECKS.map(d => d.era))];
+  const all = `<button class="filter-chip active" data-era="all">All Eras</button>`;
+  const chips = used.map(ek => {
+    const era = ERAS[ek];
+    return `<button class="filter-chip" data-era="${ek}">
+      <span class="chip-swatch" style="background:${era.color}"></span>${era.label}
+    </button>`;
+  });
+  return `<span class="strip-label">Era</span>` + all + chips.join('');
+}
+
+function makeFooter() {
+  const tot = { real: 0, proxy: 0, missing: 0, ordered: 0 };
+  let totalCards = 0;
+  for (const d of DECKS) {
+    for (const [k, v] of Object.entries(d.counts)) { tot[k] += v; totalCards += v; }
+  }
+  const lbl = { real: 'Real', proxy: 'Proxy', missing: 'Missing', ordered: 'On Order' };
+  const stats = Object.entries(tot).map(([s, n]) =>
+    `<div class="footer-stat">
+      <div class="f-dot" style="background:${STATUS_COLORS[s]}"></div>
+      <span class="f-val">${n}</span>
+      <span class="f-lbl">${lbl[s]}</span>
+    </div>`
+  ).join('<div class="fdiv"></div>');
+  return `
+    <div class="footer-brand"><span class="footer-brand-mark"></span>Deck Archive</div>
+    <div class="fdiv"></div>
+    ${stats}
+    <div class="footer-end"><strong>${totalCards}</strong> cards · <strong>${DECKS.length}</strong> decks</div>`;
+}
+
+/* ── FILTER STATE ──────────────────────────────────── */
+const state = { energy: 'all', era: 'all' };
+
+function refreshChips() {
+  // Energy chips
+  document.querySelectorAll('#energyFilter .filter-chip').forEach(chip => {
+    const key = chip.dataset.energy;
+    const isActive = key === state.energy;
+    chip.classList.toggle('active', isActive);
+    if (isActive) {
+      if (key === 'all') {
+        chip.style.background = 'rgba(91,192,222,0.25)';
+        chip.style.color = '#5BC0DE';
+      } else {
+        chip.style.background = ENERGY[key].color;
+        chip.style.color = '#fff';
+      }
+    } else {
+      chip.style.background = '';
+      chip.style.color = '';
+    }
+  });
+
+  // Era chips
+  document.querySelectorAll('#eraFilter .filter-chip').forEach(chip => {
+    const key = chip.dataset.era;
+    const isActive = key === state.era;
+    chip.classList.toggle('active', isActive);
+    if (isActive) {
+      if (key === 'all') {
+        chip.style.background = 'rgba(91,192,222,0.25)';
+        chip.style.color = '#5BC0DE';
+      } else {
+        chip.style.background = ERAS[key].color;
+        chip.style.color = '#fff';
+      }
+    } else {
+      chip.style.background = '';
+      chip.style.color = '';
+    }
+  });
+}
+
+function applyFilters() {
+  let visible = 0;
+  document.querySelectorAll('.deck-entry').forEach(el => {
+    const matchEnergy = state.energy === 'all' || el.dataset.energy === state.energy;
+    const matchEra    = state.era    === 'all' || el.dataset.era    === state.era;
+    const show = matchEnergy && matchEra;
+    el.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  document.getElementById('sectionCount').textContent =
+    `${visible} deck${visible !== 1 ? 's' : ''}`;
+  refreshChips();
+}
+
+document.getElementById('energyFilter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip[data-energy]');
+  if (chip) { state.energy = chip.dataset.energy; applyFilters(); }
+});
+
+document.getElementById('eraFilter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip[data-era]');
+  if (chip) { state.era = chip.dataset.era; applyFilters(); }
+});
+
+/* ── RENDER ────────────────────────────────────────── */
+document.getElementById('energyFilter').innerHTML = makeEnergyChips();
+document.getElementById('eraFilter').innerHTML    = makeEraChips();
+document.getElementById('deckGrid').innerHTML     = DECKS.map(makeDeckEntry).join('');
+document.getElementById('statusFooter').innerHTML = makeFooter();
+
+const totalAll = Object.values(
+  DECKS.reduce((acc, d) => {
+    for (const [k, v] of Object.entries(d.counts)) acc[k] = (acc[k] || 0) + v;
+    return acc;
+  }, {})
+).reduce((a, b) => a + b, 0);
+
+document.getElementById('headerStat').innerHTML =
+  `<strong>${DECKS.length}</strong> decks &nbsp;·&nbsp; <strong>${totalAll}</strong> cards`;
+document.getElementById('sectionCount').textContent = `${DECKS.length} decks`;
+
+applyFilters(); // sets initial active chip styles
+
+</script>
+</body>
+</html>

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design 03c — Energy Ring Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --navy: #1A3A5C;
+  --sky: #5BC0DE;
+  --yellow: #F5C518;
+  --red: #D93825;
+  --white: #FAFAFA;
+
+  --real:    #2E8B57;
+  --proxy:   #7B52C4;
+  --missing: #CC3333;
+  --ordered: #1E78C4;
+
+  --era-hgss: #D4A017;
+  --era-bw:   #888888;
+  --era-xy:   #3BAA6E;
+  --era-sm:   #E05C2A;
+  --era-swsh: #42AACF;
+  --era-sv:   #C62B4A;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0D2035;
+  font-family: 'Nunito', sans-serif;
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 30%, rgba(91,192,222,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 90% 70%, rgba(245,197,24,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 10%, rgba(217,56,37,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── PAGE HEADER ─────────────────────────────────────── */
+.page-header {
+  position: relative;
+  z-index: 2;
+  padding: 1.75rem 3rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(91,192,222,0.18);
+}
+
+.header-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2.4rem;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: var(--yellow);
+}
+.header-title em {
+  font-style: normal;
+  color: var(--sky);
+}
+
+.header-sub {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--sky);
+  opacity: 0.6;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  line-height: 1.7;
+}
+.header-right strong {
+  color: rgba(255,255,255,0.6);
+  font-weight: 800;
+}
+
+/* ── ERA FILTER ──────────────────────────────────────── */
+.era-filter {
+  position: relative;
+  z-index: 2;
+  padding: 0.85rem 3rem;
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(91,192,222,0.08);
+}
+
+.filter-label {
+  font-size: 0.67rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: rgba(255,255,255,0.28);
+  margin-right: 0.4rem;
+  white-space: nowrap;
+}
+
+.era-btn {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  padding: 0.22rem 0.8rem;
+  border-radius: 20px;
+  border: 1.5px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.18s ease;
+}
+.era-btn:hover, .era-btn.active { color: #0D2035 !important; }
+
+.era-btn.f-all  { border-color: rgba(91,192,222,0.55); color: var(--sky); }
+.era-btn.f-all:hover, .era-btn.f-all.active { background: var(--sky); }
+
+.era-btn.f-hgss { border-color: var(--era-hgss); color: var(--era-hgss); }
+.era-btn.f-hgss:hover, .era-btn.f-hgss.active { background: var(--era-hgss); }
+
+.era-btn.f-bw   { border-color: var(--era-bw); color: var(--era-bw); }
+.era-btn.f-bw:hover, .era-btn.f-bw.active { background: var(--era-bw); }
+
+.era-btn.f-xy   { border-color: var(--era-xy); color: var(--era-xy); }
+.era-btn.f-xy:hover, .era-btn.f-xy.active { background: var(--era-xy); }
+
+.era-btn.f-sm   { border-color: var(--era-sm); color: var(--era-sm); }
+.era-btn.f-sm:hover, .era-btn.f-sm.active { background: var(--era-sm); }
+
+.era-btn.f-swsh { border-color: var(--era-swsh); color: var(--era-swsh); }
+.era-btn.f-swsh:hover, .era-btn.f-swsh.active { background: var(--era-swsh); }
+
+.era-btn.f-sv   { border-color: var(--era-sv); color: var(--era-sv); }
+.era-btn.f-sv:hover, .era-btn.f-sv.active { background: var(--era-sv); }
+
+/* ── GALLERY WRAPPER ─────────────────────────────────── */
+.gallery-wrapper {
+  position: relative;
+  z-index: 1;
+  padding: 2.5rem 3rem 5rem;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.2);
+  margin-bottom: 2rem;
+}
+
+/* Staggered flex gallery */
+.ring-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  align-items: flex-start;
+}
+
+/* ── RING CARD ───────────────────────────────────────── */
+.ring-card {
+  width: calc(33.333% - 1.2rem);
+  background: rgba(255,255,255,0.028);
+  border: 1px solid rgba(91,192,222,0.14);
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem 1.4rem;
+  cursor: pointer;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease, background 0.28s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Stagger every 2nd column item downward */
+.ring-card:nth-child(3n+2) { margin-top: 56px; }
+
+/* Era stripe — top edge */
+.ring-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+}
+.ring-card[data-era="HGSS"]::before { background: linear-gradient(90deg, #A87810, #F0C840, #A87810); }
+.ring-card[data-era="BW"]::before   { background: linear-gradient(90deg, #555, #ADADAD, #555); }
+.ring-card[data-era="XY"]::before   { background: linear-gradient(90deg, #22703E, #5FCC85, #22703E); }
+.ring-card[data-era="SM"]::before   { background: linear-gradient(90deg, #9A3614, #F07040, #9A3614); }
+.ring-card[data-era="SwSh"]::before { background: linear-gradient(90deg, #1E6E8A, #70D0EE, #1E6E8A); }
+.ring-card[data-era="SV"]::before   { background: linear-gradient(90deg, #6A1020, #D84060, #6A1020); }
+
+/* Soft era glow in bottom-right corner */
+.ring-card::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; right: -40px;
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  opacity: 0.07;
+  transition: opacity 0.28s;
+}
+.ring-card[data-era="HGSS"]::after { background: var(--era-hgss); }
+.ring-card[data-era="BW"]::after   { background: var(--era-bw); }
+.ring-card[data-era="XY"]::after   { background: var(--era-xy); }
+.ring-card[data-era="SM"]::after   { background: var(--era-sm); }
+.ring-card[data-era="SwSh"]::after { background: var(--era-swsh); }
+.ring-card[data-era="SV"]::after   { background: var(--era-sv); }
+
+.ring-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(91,192,222,0.3);
+  border-color: rgba(91,192,222,0.35);
+  background: rgba(255,255,255,0.055);
+}
+.ring-card:hover::after { opacity: 0.13; }
+
+/* hidden state for filter */
+.ring-card.hidden { display: none; }
+
+/* ── SVG RING ────────────────────────────────────────── */
+.ring-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.1rem;
+}
+
+.ring-svg {
+  display: block;
+  overflow: visible;
+  transition: transform 0.5s ease;
+}
+.ring-card:hover .ring-svg { transform: rotate(8deg); }
+
+.ring-inner-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  width: 110px;
+}
+
+.ring-pct {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  line-height: 1;
+  color: white;
+}
+
+.ring-deck-name {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: rgba(255,255,255,0.75);
+  margin-top: 0.2rem;
+}
+
+.ring-era-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  margin-top: 0.15rem;
+}
+
+/* ── STATUS BAR ──────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  margin-bottom: 0.9rem;
+}
+.status-bar-seg { height: 100%; }
+.status-bar-seg.real    { background: var(--real); }
+.status-bar-seg.proxy   { background: var(--proxy); }
+.status-bar-seg.missing { background: var(--missing); }
+.status-bar-seg.ordered { background: var(--ordered); }
+
+/* ── COUNT GRID ──────────────────────────────────────── */
+.count-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem 0.6rem;
+}
+
+.count-item {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.55);
+}
+
+.count-pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.count-pip.real    { background: var(--real);    box-shadow: 0 0 5px rgba(46,139,87,0.9); }
+.count-pip.proxy   { background: var(--proxy);   box-shadow: 0 0 5px rgba(123,82,196,0.9); }
+.count-pip.missing { background: var(--missing); box-shadow: 0 0 5px rgba(204,51,51,0.9); }
+.count-pip.ordered { background: var(--ordered); box-shadow: 0 0 5px rgba(30,120,196,0.9); }
+
+.count-val { font-weight: 900; color: white; margin-right: 1px; }
+
+/* ── DECK META ROW ───────────────────────────────────── */
+.deck-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.format-tag {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.3);
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+.status-tag {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.73rem;
+  letter-spacing: 0.03em;
+}
+.status-tag.complete  { color: var(--real); }
+.status-tag.playable  { color: var(--sky); }
+.status-tag.progress  { color: var(--yellow); }
+.status-tag.planning  { color: rgba(255,255,255,0.3); }
+
+/* ── HOVER OVERLAY ───────────────────────────────────── */
+.hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 22, 38, 0.95);
+  border-radius: 20px;
+  padding: 1.4rem 1.3rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ring-card:hover .hover-overlay { opacity: 1; }
+
+.overlay-header {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1rem;
+  color: var(--yellow);
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.overlay-rows {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.overlay-row {
+  display: flex;
+  align-items: center;
+  padding: 0.22rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  gap: 0.4rem;
+}
+.overlay-row:last-child { border-bottom: none; }
+
+.overlay-name {
+  flex: 1;
+  font-size: 0.69rem;
+  color: rgba(255,255,255,0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlay-count {
+  font-weight: 900;
+  font-size: 0.72rem;
+  color: white;
+  min-width: 22px;
+  text-align: center;
+}
+
+.overlay-badge {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.08rem 0.32rem;
+  border-radius: 3px;
+  min-width: 48px;
+  text-align: center;
+}
+.overlay-badge.real    { background: rgba(46,139,87,0.22);   color: #6DD49A; }
+.overlay-badge.proxy   { background: rgba(123,82,196,0.22);  color: #B094E8; }
+.overlay-badge.missing { background: rgba(204,51,51,0.22);   color: #E88080; }
+.overlay-badge.ordered { background: rgba(30,120,196,0.22);  color: #70B8E8; }
+
+.overlay-more {
+  text-align: center;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.22);
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ── GLOBAL STATS FOOTER ─────────────────────────────── */
+.global-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 10;
+  background: rgba(8, 18, 30, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(91,192,222,0.15);
+  padding: 0.8rem 3rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-label {
+  font-family: 'Fredoka One', cursive;
+  font-size: 0.78rem;
+  color: var(--sky);
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.footer-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.footer-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  white-space: nowrap;
+}
+
+.footer-pip {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.footer-val {
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: white;
+}
+
+.footer-name {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.footer-total {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+}
+.footer-total strong { color: rgba(255,255,255,0.7); font-weight: 800; }
+
+</style>
+</head>
+<body>
+
+<!-- Hidden SVG glow filters -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden">
+  <defs>
+    <filter id="glow-real" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-proxy" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-missing" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-ordered" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<header class="page-header">
+  <div>
+    <div class="header-title">Deck <em>Archive</em></div>
+    <div class="header-sub">Design 03c — Energy Ring Gallery</div>
+  </div>
+  <div class="header-right" id="headerStats"></div>
+</header>
+
+<nav class="era-filter">
+  <span class="filter-label">Era</span>
+  <button class="era-btn f-all active" data-filter="all">All</button>
+  <button class="era-btn f-hgss" data-filter="HGSS">HGSS</button>
+  <button class="era-btn f-bw"   data-filter="BW">BW</button>
+  <button class="era-btn f-xy"   data-filter="XY">XY</button>
+  <button class="era-btn f-sm"   data-filter="SM">SM</button>
+  <button class="era-btn f-swsh" data-filter="SwSh">SwSh</button>
+  <button class="era-btn f-sv"   data-filter="SV">SV</button>
+</nav>
+
+<div class="gallery-wrapper">
+  <div class="section-label">Personal Collection · Competitive Decks</div>
+  <div class="ring-gallery" id="gallery"></div>
+</div>
+
+<footer class="global-footer" id="footer"></footer>
+
+<script>
+const STATUS_COLORS = {
+  real:    '#2E8B57',
+  proxy:   '#7B52C4',
+  missing: '#CC3333',
+  ordered: '#1E78C4'
+};
+
+const STATUS_ORDER = ['real', 'proxy', 'ordered', 'missing'];
+
+const DECKS = [
+  {
+    id: 'magnezone', name: 'Magnezone Prime', era: 'HGSS', format: 'Modified',
+    cards: [
+      { name: 'Magnezone Prime',          count: 3, status: 'real' },
+      { name: 'Magneton (RR)',             count: 2, status: 'real' },
+      { name: 'Magneton (Base)',           count: 2, status: 'proxy' },
+      { name: 'Magnemite (HGSS)',          count: 4, status: 'real' },
+      { name: 'Emboar (BW)',               count: 2, status: 'real' },
+      { name: 'Pignite',                   count: 2, status: 'proxy' },
+      { name: 'Tepig',                     count: 3, status: 'real' },
+      { name: 'Cleffa',                    count: 2, status: 'real' },
+      { name: 'Pokémon Communication',     count: 4, status: 'real' },
+      { name: 'Rare Candy',                count: 4, status: 'real' },
+      { name: 'Junk Arm',                  count: 4, status: 'real' },
+      { name: 'Level Ball',                count: 4, status: 'real' },
+      { name: 'Pokémon Collector',         count: 3, status: 'real' },
+      { name: "Prof. Juniper",             count: 4, status: 'real' },
+      { name: "Prof. Oak's New Theory",    count: 3, status: 'real' },
+      { name: 'Twins',                     count: 2, status: 'real' },
+      { name: 'Rescue Energy',             count: 4, status: 'real' },
+      { name: 'Lightning Energy',          count: 6, status: 'real' },
+    ]
+  },
+  {
+    id: 'mewtwo', name: 'CMT (Mewtwo EX)', era: 'BW', format: 'Modified',
+    cards: [
+      { name: 'Mewtwo EX',                 count: 3, status: 'real' },
+      { name: 'Celebi Prime',              count: 3, status: 'real' },
+      { name: 'Tornadus EX',               count: 2, status: 'real' },
+      { name: 'Smeargle (Call of Legends)', count: 2, status: 'proxy' },
+      { name: 'Shaymin EX',                count: 2, status: 'missing' },
+      { name: "Skyarrow Bridge",            count: 4, status: 'real' },
+      { name: "Pokémon Catcher",            count: 4, status: 'real' },
+      { name: "Professor Juniper",          count: 4, status: 'real' },
+      { name: 'N',                          count: 4, status: 'real' },
+      { name: 'Bianca',                     count: 4, status: 'real' },
+      { name: 'Ultra Ball',                 count: 4, status: 'real' },
+      { name: 'Dual Ball',                  count: 4, status: 'real' },
+      { name: 'Switch',                     count: 2, status: 'real' },
+      { name: 'Eviolite',                   count: 2, status: 'real' },
+      { name: 'Grass Energy',               count: 6, status: 'real' },
+      { name: 'Psychic Energy',             count: 4, status: 'real' },
+      { name: 'Double Colorless Energy',    count: 4, status: 'missing' },
+    ]
+  },
+  {
+    id: 'yveltal', name: 'Yveltal EX / Garbodor', era: 'XY', format: 'Modified',
+    cards: [
+      { name: 'Yveltal EX',               count: 3, status: 'real' },
+      { name: 'Darkrai EX (DEX)',          count: 2, status: 'missing' },
+      { name: 'Yveltal (XY)',              count: 2, status: 'real' },
+      { name: 'Garbodor',                  count: 2, status: 'proxy' },
+      { name: 'Trubbish',                  count: 2, status: 'proxy' },
+      { name: 'Lysandre',                  count: 2, status: 'ordered' },
+      { name: "Professor Sycamore",        count: 4, status: 'real' },
+      { name: 'N',                          count: 3, status: 'real' },
+      { name: "Shauna",                     count: 2, status: 'real' },
+      { name: "Float Stone",               count: 3, status: 'missing' },
+      { name: 'Ultra Ball',                count: 4, status: 'real' },
+      { name: 'Muscle Band',               count: 4, status: 'ordered' },
+      { name: "Dark Patch",                count: 4, status: 'missing' },
+      { name: "Startling Megaphone",       count: 2, status: 'real' },
+      { name: 'Dark Energy',               count: 9, status: 'real' },
+      { name: 'Double Colorless Energy',   count: 4, status: 'real' },
+    ]
+  },
+  {
+    id: 'buzzwole', name: 'Buzzwole GX / Lycanroc', era: 'SM', format: 'Standard',
+    cards: [
+      { name: 'Buzzwole GX',              count: 4, status: 'real' },
+      { name: 'Lycanroc GX (GRI)',        count: 2, status: 'real' },
+      { name: 'Rockruff',                 count: 3, status: 'real' },
+      { name: 'Diancie Prism Star',       count: 1, status: 'ordered' },
+      { name: 'Remoraid',                 count: 3, status: 'real' },
+      { name: 'Octillery',                count: 2, status: 'real' },
+      { name: "Beast Ring",               count: 4, status: 'ordered' },
+      { name: "Cynthia",                  count: 4, status: 'real' },
+      { name: "Guzma",                    count: 4, status: 'real' },
+      { name: "Brigette",                 count: 1, status: 'ordered' },
+      { name: "Nest Ball",                count: 4, status: 'real' },
+      { name: "Choice Band",              count: 4, status: 'real' },
+      { name: "Brooklet Hill",            count: 3, status: 'real' },
+      { name: "Float Stone",              count: 2, status: 'real' },
+      { name: "Fighting Energy",          count: 11, status: 'real' },
+      { name: "Strong Energy",            count: 4, status: 'real' },
+    ]
+  },
+  {
+    id: 'zacian', name: 'ADP / Zacian V', era: 'SwSh', format: 'Standard',
+    cards: [
+      { name: 'Zacian V',                  count: 3, status: 'real' },
+      { name: 'Arceus Dialga Palkia GX',   count: 3, status: 'proxy' },
+      { name: 'Dedenne GX',                count: 2, status: 'missing' },
+      { name: 'Crobat V',                  count: 2, status: 'missing' },
+      { name: "Marnie",                    count: 4, status: 'real' },
+      { name: "Boss's Orders",             count: 2, status: 'real' },
+      { name: "Professor's Research",      count: 4, status: 'real' },
+      { name: "Energy Switch",             count: 3, status: 'real' },
+      { name: "Quick Ball",                count: 4, status: 'real' },
+      { name: "Metal Saucer",              count: 4, status: 'real' },
+      { name: "Rusted Sword",              count: 2, status: 'real' },
+      { name: "Switch",                    count: 2, status: 'real' },
+      { name: "Great Ball",                count: 3, status: 'proxy' },
+      { name: "Escape Rope",               count: 2, status: 'real' },
+      { name: "Metal Energy",              count: 11, status: 'real' },
+      { name: "Water Energy",              count: 4, status: 'real' },
+      { name: "Aurora Energy",             count: 3, status: 'missing' },
+    ]
+  },
+  {
+    id: 'charizard', name: 'Charizard ex / Pidgeot', era: 'SV', format: 'Standard',
+    cards: [
+      { name: 'Charizard ex',              count: 3, status: 'ordered' },
+      { name: 'Charmeleon',                count: 2, status: 'missing' },
+      { name: 'Charmander',                count: 4, status: 'missing' },
+      { name: 'Pidgeot ex',                count: 2, status: 'ordered' },
+      { name: 'Pidgeotto',                 count: 2, status: 'missing' },
+      { name: 'Pidgey',                    count: 3, status: 'missing' },
+      { name: "Arven",                     count: 4, status: 'real' },
+      { name: "Boss's Orders",             count: 2, status: 'real' },
+      { name: "Professor's Research",      count: 4, status: 'proxy' },
+      { name: "Iono",                      count: 4, status: 'real' },
+      { name: "Rare Candy",                count: 4, status: 'real' },
+      { name: "Ultra Ball",                count: 4, status: 'real' },
+      { name: "Buddy-Buddy Poffin",        count: 4, status: 'ordered' },
+      { name: "Nest Ball",                 count: 4, status: 'proxy' },
+      { name: "Counter Catcher",           count: 2, status: 'missing' },
+      { name: "Fire Energy",               count: 7, status: 'real' },
+    ]
+  }
+];
+
+/* ── HELPERS ────────────────────────────────────────── */
+function countCards(cards) {
+  const c = { real: 0, proxy: 0, missing: 0, ordered: 0 };
+  for (const card of cards) c[card.status] = (c[card.status] || 0) + card.count;
+  return c;
+}
+
+function getDeckStatus(counts, total) {
+  if (counts.real === total) return ['complete', '★ Complete'];
+  if (!counts.missing && !counts.ordered) return ['playable', '✔ Playable'];
+  if (counts.real / total >= 0.5) return ['progress', '◑ In Progress'];
+  return ['planning', '○ Planning'];
+}
+
+/* ── SVG RING BUILDER ───────────────────────────────── */
+function buildRingSVG(counts) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (!total) return '';
+
+  const R   = 70;
+  const CX  = 100, CY = 100;
+  const CIRC = 2 * Math.PI * R;
+  const GAP  = 4;
+  const SW   = 17; // stroke width
+
+  let segs = '';
+  let cum  = 0; // cumulative arc length (px)
+
+  // Outer decorative circles
+  segs += `<circle cx="${CX}" cy="${CY}" r="${R + SW/2 + 5}"
+    fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+  segs += `<circle cx="${CX}" cy="${CY}" r="${R + SW/2 + 9}"
+    fill="none" stroke="rgba(255,255,255,0.025)" stroke-width="0.6"
+    stroke-dasharray="2 5"/>`;
+
+  // Inner fill circle
+  segs += `<circle cx="${CX}" cy="${CY}" r="${R - SW/2 - 2}"
+    fill="rgba(255,255,255,0.03)"/>`;
+
+  // Track ring (background)
+  segs += `<circle cx="${CX}" cy="${CY}" r="${R}"
+    fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="${SW}"/>`;
+
+  for (const status of STATUS_ORDER) {
+    const cnt = counts[status] || 0;
+    if (!cnt) continue;
+
+    const full = (cnt / total) * CIRC;
+    const vis  = Math.max(0, full - GAP);
+    if (vis <= 0) { cum += full; continue; }
+
+    // dashoffset: negative = shift forward (clockwise) along path
+    const dashOffset = -(cum);
+
+    segs += `<circle
+      cx="${CX}" cy="${CY}" r="${R}"
+      fill="none"
+      stroke="${STATUS_COLORS[status]}"
+      stroke-width="${SW}"
+      stroke-dasharray="${vis} ${CIRC - vis}"
+      stroke-dashoffset="${dashOffset}"
+      stroke-linecap="butt"
+      transform="rotate(-90 ${CX} ${CY})"
+      filter="url(#glow-${status})"
+    />`;
+
+    cum += full;
+  }
+
+  return `<svg class="ring-svg" width="200" height="200" viewBox="0 0 200 200">${segs}</svg>`;
+}
+
+/* ── CARD BUILDER ───────────────────────────────────── */
+function buildCard(deck) {
+  const counts = countCards(deck.cards);
+  const total  = Object.values(counts).reduce((a, b) => a + b, 0);
+  const realPct = Math.round((counts.real / total) * 100);
+  const [statusCls, statusLabel] = getDeckStatus(counts, total);
+
+  // Status bar
+  const barSegs = STATUS_ORDER
+    .filter(s => counts[s] > 0)
+    .map(s => `<div class="status-bar-seg ${s}" style="flex:${counts[s]}"></div>`)
+    .join('');
+
+  // Count grid
+  const countItems = [
+    ['real', 'Real'], ['proxy', 'Proxy'], ['ordered', 'On Order'], ['missing', 'Missing']
+  ].map(([s, lbl]) => `
+    <div class="count-item">
+      <div class="count-pip ${s}"></div>
+      <span><span class="count-val">${counts[s]}</span> ${lbl}</span>
+    </div>
+  `).join('');
+
+  // Hover overlay rows (cap at 13)
+  const MAX_ROWS = 13;
+  const shownCards = deck.cards.slice(0, MAX_ROWS);
+  const remainder  = deck.cards.length - MAX_ROWS;
+  const overlayRows = shownCards.map(c => `
+    <div class="overlay-row">
+      <span class="overlay-name">${c.name}</span>
+      <span class="overlay-count">×${c.count}</span>
+      <span class="overlay-badge ${c.status}">${c.status}</span>
+    </div>
+  `).join('');
+  const moreNote = remainder > 0
+    ? `<div class="overlay-more">+${remainder} more cards</div>` : '';
+
+  return `
+    <div class="ring-card" data-era="${deck.era}" data-id="${deck.id}">
+      <div class="ring-container">
+        ${buildRingSVG(counts)}
+        <div class="ring-inner-text">
+          <div class="ring-pct">${realPct}%</div>
+          <div class="ring-deck-name">${deck.name}</div>
+          <div class="ring-era-label">${deck.era} · ${deck.format}</div>
+        </div>
+      </div>
+
+      <div class="status-bar">${barSegs}</div>
+      <div class="count-grid">${countItems}</div>
+
+      <div class="deck-meta">
+        <span class="format-tag">${deck.format}</span>
+        <span class="status-tag ${statusCls}">${statusLabel}</span>
+      </div>
+
+      <div class="hover-overlay">
+        <div class="overlay-header">${deck.name}</div>
+        <div class="overlay-rows">
+          ${overlayRows}
+          ${moreNote}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ── GLOBAL STATS ───────────────────────────────────── */
+function buildFooter() {
+  const totals = { real: 0, proxy: 0, missing: 0, ordered: 0 };
+  let cardTotal = 0;
+  for (const d of DECKS) {
+    const c = countCards(d.cards);
+    for (const s of STATUS_ORDER) totals[s] += c[s] || 0;
+    cardTotal += Object.values(c).reduce((a, b) => a + b, 0);
+  }
+
+  const divider = `<div class="footer-divider"></div>`;
+  const stats = STATUS_ORDER.map(s => {
+    const labels = { real:'Real', proxy:'Proxy', ordered:'On Order', missing:'Missing' };
+    return `<div class="footer-stat">
+      <div class="footer-pip" style="background:${STATUS_COLORS[s]};box-shadow:0 0 5px ${STATUS_COLORS[s]}90"></div>
+      <span class="footer-val">${totals[s]}</span>
+      <span class="footer-name">${labels[s]}</span>
+    </div>`;
+  }).join(divider);
+
+  document.getElementById('headerStats').innerHTML =
+    `<strong>${DECKS.length}</strong> decks &nbsp;·&nbsp; <strong>${cardTotal}</strong> cards tracked`;
+
+  return `
+    <span class="footer-label">Collection</span>
+    ${divider}
+    ${stats}
+    <div class="footer-total">${divider} <strong>${cardTotal}</strong> total tracked</div>
+  `;
+}
+
+/* ── FILTER ─────────────────────────────────────────── */
+document.querySelector('.era-filter').addEventListener('click', e => {
+  const btn = e.target.closest('.era-btn');
+  if (!btn) return;
+  document.querySelectorAll('.era-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const era = btn.dataset.filter;
+  document.querySelectorAll('.ring-card').forEach(card => {
+    card.classList.toggle('hidden', era !== 'all' && card.dataset.era !== era);
+  });
+});
+
+/* ── RENDER ─────────────────────────────────────────── */
+document.getElementById('gallery').innerHTML = DECKS.map(buildCard).join('');
+document.getElementById('footer').innerHTML  = buildFooter();
+
+</script>
+</body>
+</html>

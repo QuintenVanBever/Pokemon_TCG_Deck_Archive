@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design 03b — TCG Card Format</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky:    #5BC0DE;
+    --sky-d:  #3A8FAA;
+    --sky-l:  #D4ECFA;
+    --yellow: #F5C518;
+    --yellow-d: #C49A00;
+    --red:    #D93825;
+    --white:  #FFFFFF;
+    --cream:  #FFF8EE;
+    --navy:   #1A3A5C;
+    --dark:   #2A2A2A;
+    --real-c:   #2E8B57;
+    --proxy-c:  #7B52C4;
+    --missing-c:#CC3333;
+    --ordered-c:#1E78C4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--sky-l);
+    background-image:
+      radial-gradient(circle at 15% 30%, rgba(245,197,24,.12) 0%, transparent 45%),
+      radial-gradient(circle at 85% 70%, rgba(91,192,222,.15) 0%, transparent 45%);
+    font-family: 'Nunito', sans-serif;
+    color: var(--dark);
+    min-height: 100vh;
+  }
+
+  /* ── NAV ─────────────────────────────────────── */
+  .nav {
+    background: var(--navy);
+    border-bottom: 4px solid var(--yellow);
+    padding: 0 20px;
+  }
+  .nav-inner { display: flex; align-items: center; gap: 6px; height: 54px; }
+  .nav-logo {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px; color: var(--yellow); text-decoration: none;
+    text-shadow: 2px 2px 0 var(--yellow-d); margin-right: 8px;
+  }
+  .nav-logo span { color: var(--white); }
+  .nav-links { display: flex; gap: 2px; list-style: none; }
+  .nav-links a {
+    display: block; padding: 5px 12px; font-size: 12px; font-weight: 800;
+    color: rgba(255,255,255,.65); text-decoration: none; border-radius: 5px;
+  }
+  .nav-links a.active { background: var(--yellow); color: var(--navy); }
+
+  /* ── PAGE HEADER ─────────────────────────────── */
+  .page-header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 24px 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .page-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--navy);
+    text-shadow: 1px 1px 0 rgba(0,0,0,.07);
+  }
+
+  .page-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sky-d);
+  }
+
+  /* ── ERA FILTER ──────────────────────────────── */
+  .era-filter {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 24px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .era-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px; font-weight: 900; letter-spacing: .08em;
+    text-transform: uppercase; padding: 5px 14px; border-radius: 16px;
+    border: none; cursor: pointer; transition: all .15s;
+  }
+
+  .era-btn.all    { background: var(--navy);    color: var(--white); }
+  .era-btn.hgss   { background: var(--yellow-d); color: var(--white); opacity: .5; }
+  .era-btn.bw     { background: #555;            color: var(--white); opacity: .5; }
+  .era-btn.xy     { background: #2E7D52;         color: var(--white); opacity: .5; }
+  .era-btn.sm     { background: #9A2018;         color: var(--white); opacity: .5; }
+  .era-btn.swsh   { background: var(--sky-d);    color: var(--white); opacity: .5; }
+  .era-btn.all:hover { opacity: 1; }
+  .era-btn:not(.all):hover { opacity: .85; }
+
+  /* ── CARD GRID ───────────────────────────────── */
+  .card-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ── DECK CARD ───────────────────────────────── */
+  /* Proportioned like an actual Pokémon card 2.5:3.5 = 63:88mm */
+  .deck-card {
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14);
+    position: relative;
+    background: var(--white);
+  }
+
+  .deck-card:hover {
+    transform: translateY(-5px) rotate(-.4deg);
+    box-shadow: 0 16px 32px rgba(0,0,0,.2);
+  }
+
+  /* Era-colored border like real cards have colored borders */
+  .deck-card.hgss { border: 4px solid var(--yellow-d); }
+  .deck-card.bw   { border: 4px solid #444; }
+  .deck-card.xy   { border: 4px solid #2E7D52; }
+  .deck-card.sm   { border: 4px solid #9A2018; }
+  .deck-card.swsh { border: 4px solid var(--sky-d); }
+  .deck-card.sv   { border: 4px solid #8A2040; }
+
+  /* ── RIBBON (replaces pill badges entirely) ── */
+  /* Physical contest/tournament ribbon in top-right corner */
+  .ribbon {
+    position: absolute;
+    top: -1px;
+    right: 14px;
+    width: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+  }
+
+  .ribbon-body {
+    width: 28px;
+    padding: 10px 0 6px;
+    text-align: center;
+    font-size: 11px;
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* The V-cut at bottom of ribbon */
+  .ribbon-body::after {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    margin: 4px -6px -8px -6px;
+  }
+
+  .ribbon-icon { font-size: 12px; display: block; }
+
+  .ribbon.allreal .ribbon-body { background: #FFD700; }
+  .ribbon.allreal .ribbon-body::after { border-top: 8px solid #FFD700; }
+
+  .ribbon.playable .ribbon-body { background: var(--sky); }
+  .ribbon.playable .ribbon-body::after { border-top: 8px solid var(--sky); }
+
+  .ribbon.wip .ribbon-body { background: #DD4422; }
+  .ribbon.wip .ribbon-body::after { border-top: 8px solid #DD4422; }
+
+  .ribbon.awaiting .ribbon-body { background: #4499CC; }
+  .ribbon.awaiting .ribbon-body::after { border-top: 8px solid #4499CC; }
+
+  /* ── CARD HEADER ─────────────────────────────── */
+  .card-header {
+    padding: 8px 10px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .card-header.hgss { background: linear-gradient(135deg, #F5C518, #C49A00); }
+  .card-header.bw   { background: linear-gradient(135deg, #555, #222); }
+  .card-header.xy   { background: linear-gradient(135deg, #3DAA6A, #1A5A35); }
+  .card-header.sm   { background: linear-gradient(135deg, #E8502A, #9A2018); }
+  .card-header.swsh { background: linear-gradient(135deg, #5BC0DE, #2A7A9E); }
+  .card-header.sv   { background: linear-gradient(135deg, #C03060, #6A1030); }
+
+  .card-hd-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    color: var(--white);
+    text-shadow: 1px 1px 0 rgba(0,0,0,.25);
+    flex: 1;
+    padding-right: 30px; /* space for ribbon */
+    line-height: 1.2;
+  }
+
+  /* HP-style counter — exactly like actual TCG cards */
+  .card-hd-count {
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    flex-shrink: 0;
+  }
+
+  .card-hd-count-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: var(--white);
+    text-shadow: 1px 1px 0 rgba(0,0,0,.25);
+    line-height: 1;
+  }
+
+  .card-hd-count-lbl {
+    font-size: 9px;
+    font-weight: 900;
+    color: rgba(255,255,255,.75);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding-bottom: 1px;
+  }
+
+  /* ── CARD IMAGE ZONE ─────────────────────────── */
+  /* Each era has a distinctive pattern inspired by actual era aesthetics */
+  .card-image-zone {
+    height: 88px;
+    margin: 0 8px;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-image-zone.hgss {
+    background: linear-gradient(160deg, #FFF5C0, #FFE040);
+  }
+
+  .card-image-zone.hgss::before {
+    content: '⚡ ⚡ ⚡';
+    font-size: 22px;
+    opacity: .18;
+    letter-spacing: 10px;
+  }
+
+  .card-image-zone.bw {
+    background: linear-gradient(160deg, #E0E0E0, #B0B0B0);
+  }
+
+  .card-image-zone.bw::before {
+    content: '◆ ◆ ◆';
+    font-size: 22px;
+    opacity: .15;
+    letter-spacing: 10px;
+  }
+
+  .card-image-zone.xy {
+    background: linear-gradient(160deg, #C8F0D0, #88D0A0);
+  }
+
+  .card-image-zone.xy::before {
+    content: '🌿 🌿 🌿';
+    font-size: 18px;
+    opacity: .25;
+    letter-spacing: 6px;
+  }
+
+  .card-image-zone.sm {
+    background: linear-gradient(160deg, #FFCCC0, #FF9080);
+  }
+
+  .card-image-zone.sm::before {
+    content: '🔥 🔥 🔥';
+    font-size: 18px;
+    opacity: .25;
+    letter-spacing: 6px;
+  }
+
+  .card-image-zone.swsh {
+    background: linear-gradient(160deg, #C0E8FF, #80C8F0);
+  }
+
+  .card-image-zone.swsh::before {
+    content: '✧ ✧ ✧';
+    font-size: 22px;
+    opacity: .2;
+    letter-spacing: 10px;
+  }
+
+  /* ── CARD TYPE LINE ──────────────────────────── */
+  .card-type-line {
+    padding: 5px 10px 4px;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #888;
+    border-bottom: 1px solid #EEE;
+  }
+
+  /* ── STATUS ROWS (replacing attack rows) ─────── */
+  /* This is the key: styled like attack cost rows on actual TCG cards */
+  .card-attacks {
+    padding: 6px 10px 4px;
+  }
+
+  .attack-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border-bottom: 1px dotted #EEEEEE;
+    min-height: 24px;
+  }
+
+  .attack-row:last-child { border-bottom: none; }
+
+  /* Energy cost circles — the KEY non-pill status indicator */
+  /* Exactly how energy costs appear on real cards */
+  .energy-cost {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+    min-width: 60px;
+  }
+
+  .energy-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,.12);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6px;
+    font-weight: 900;
+  }
+
+  .energy-dot.real    { background: radial-gradient(circle at 35% 35%, #4DB875, #1A6B3A); }
+  .energy-dot.proxy   { background: radial-gradient(circle at 35% 35%, #9878E0, #5530A8); }
+  .energy-dot.missing { background: #1A1A2E; border-color: #444; }
+  .energy-dot.ordered { background: radial-gradient(circle at 35% 35%, #5AAEDC, #1866AA); }
+  .energy-dot.empty   { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.08); }
+
+  /* X marks for missing (like weakness symbol on cards) */
+  .energy-dot.missing::after {
+    content: '×';
+    font-size: 8px;
+    color: rgba(255,80,80,.6);
+  }
+
+  .energy-dot.ordered::after {
+    content: '◎';
+    font-size: 6px;
+    color: rgba(255,255,255,.7);
+  }
+
+  .attack-name {
+    font-size: 10px;
+    font-weight: 800;
+    color: #555;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    flex: 1;
+  }
+
+  .attack-count {
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .attack-count.real    { color: var(--real-c); }
+  .attack-count.proxy   { color: var(--proxy-c); }
+  .attack-count.missing { color: var(--missing-c); }
+  .attack-count.ordered { color: var(--ordered-c); }
+  .attack-count.zero    { color: #CCC; font-size: 13px; }
+
+  /* ── CARD FOOTER ─────────────────────────────── */
+  /* Exactly like the real card footer: weakness/resistance/retreat */
+  .card-footer {
+    background: #F5F5F5;
+    border-top: 1px solid #EEE;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .card-footer-cell {
+    flex: 1;
+    text-align: center;
+    border-right: 1px solid #DDD;
+    padding: 0 4px;
+  }
+
+  .card-footer-cell:last-child { border-right: none; }
+
+  .cfc-label {
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #AAA;
+    display: block;
+    margin-bottom: 1px;
+  }
+
+  .cfc-val {
+    font-size: 10px;
+    font-weight: 800;
+    color: #666;
+  }
+
+  /* Card number (like 001/014) */
+  .card-number {
+    padding: 4px 10px 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #BBBBBB;
+    letter-spacing: .08em;
+  }
+
+  .card-number-illus { font-style: italic; }
+
+  /* ── STATS STRIP ─────────────────────────────── */
+  /* Bottom of page — summary across all decks */
+  .stats-strip {
+    background: var(--navy);
+    padding: 14px 24px;
+    border-top: 4px solid var(--yellow);
+  }
+
+  .stats-strip-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+    align-items: center;
+  }
+
+  .strip-stat {
+    flex: 1;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,.15);
+    padding: 0 16px;
+  }
+
+  .strip-stat:last-child { border-right: none; }
+
+  .strip-val {
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px;
+    line-height: 1;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .strip-lbl {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.45);
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">Deck<span>Archive</span></a>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Decks</a></li>
+      <li><a href="#">Eras</a></li>
+      <li><a href="#">Stats</a></li>
+      <li><a href="#">Buy List</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1 class="page-title">All Decks</h1>
+  <span class="page-count">14 decks · 6 eras</span>
+</div>
+
+<div class="era-filter">
+  <button class="era-btn all">All eras</button>
+  <button class="era-btn hgss">HGSS</button>
+  <button class="era-btn bw">BW</button>
+  <button class="era-btn xy">XY</button>
+  <button class="era-btn sm">SM</button>
+  <button class="era-btn swsh">SwSh</button>
+</div>
+
+<div class="card-grid">
+
+  <!-- MAGNEZONE PRIME -->
+  <div class="deck-card hgss">
+    <div class="ribbon allreal">
+      <div class="ribbon-body"><span class="ribbon-icon">★</span></div>
+    </div>
+    <div class="card-header hgss">
+      <span class="card-hd-name">Magnezone Prime &amp; Eelektrik</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone hgss"></div>
+    <div class="card-type-line">HGSS Block · Lightning · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">60</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot empty"></div>
+        </div>
+        <span class="attack-name">Proxy</span>
+        <span class="attack-count zero">—</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot empty"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count zero">—</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val">All Real</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">HGSS</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Format</span>
+        <span class="cfc-val">Modified</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>001/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+  <!-- RESHIRAM & TYPHLOSION -->
+  <div class="deck-card hgss">
+    <div class="ribbon wip">
+      <div class="ribbon-body"><span class="ribbon-icon">!</span></div>
+    </div>
+    <div class="card-header hgss">
+      <span class="card-hd-name">Reshiram &amp; Typhlosion</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone hgss"></div>
+    <div class="card-type-line">HGSS Block · Fire · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">42</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot proxy"></div>
+          <div class="energy-dot proxy"></div>
+        </div>
+        <span class="attack-name">Proxy</span>
+        <span class="attack-count proxy">8</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot missing"></div>
+          <div class="energy-dot missing"></div>
+          <div class="energy-dot missing"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count missing">10</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val" style="color:var(--red)">WIP</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">HGSS</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Missing</span>
+        <span class="cfc-val" style="color:var(--red)">10</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>002/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+  <!-- BLASTOISE / KELDEO -->
+  <div class="deck-card bw">
+    <div class="ribbon playable">
+      <div class="ribbon-body"><span class="ribbon-icon">✔</span></div>
+    </div>
+    <div class="card-header bw">
+      <span class="card-hd-name">Blastoise / Keldeo-EX</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone bw"></div>
+    <div class="card-type-line">BW Block · Water · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">48</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot proxy"></div>
+          <div class="energy-dot proxy"></div>
+          <div class="energy-dot proxy"></div>
+        </div>
+        <span class="attack-name">Proxy</span>
+        <span class="attack-count proxy">12</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot empty"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count zero">—</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val" style="color:var(--sky-d)">Playable</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">BW</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Proxy</span>
+        <span class="cfc-val">12</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>003/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+  <!-- NIGHT MARCH -->
+  <div class="deck-card xy">
+    <div class="ribbon awaiting">
+      <div class="ribbon-body"><span class="ribbon-icon">◎</span></div>
+    </div>
+    <div class="card-header xy">
+      <span class="card-hd-name">Night March</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone xy"></div>
+    <div class="card-type-line">XY Block · Psychic · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">50</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot ordered"></div>
+          <div class="energy-dot ordered"></div>
+        </div>
+        <span class="attack-name">Ordered</span>
+        <span class="attack-count ordered">10</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot empty"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count zero">—</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val" style="color:#1E78C4">Awaiting</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">XY</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">On Order</span>
+        <span class="cfc-val" style="color:#1E78C4">10</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>004/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+  <!-- ZOROARK -->
+  <div class="deck-card sm">
+    <div class="ribbon playable">
+      <div class="ribbon-body"><span class="ribbon-icon">✔</span></div>
+    </div>
+    <div class="card-header sm">
+      <span class="card-hd-name">Zoroark-GX Control</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone sm"></div>
+    <div class="card-type-line">SM Block · Darkness · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">54</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot proxy"></div>
+        </div>
+        <span class="attack-name">Proxy</span>
+        <span class="attack-count proxy">6</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot empty"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count zero">—</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val" style="color:var(--sky-d)">Playable</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">SM</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Proxy</span>
+        <span class="cfc-val">6</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>005/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+  <!-- MEW VMAX -->
+  <div class="deck-card swsh">
+    <div class="ribbon wip">
+      <div class="ribbon-body"><span class="ribbon-icon">!</span></div>
+    </div>
+    <div class="card-header swsh">
+      <span class="card-hd-name">Mew VMAX</span>
+      <div class="card-hd-count">
+        <span class="card-hd-count-num">60</span>
+        <span class="card-hd-count-lbl">cards</span>
+      </div>
+    </div>
+    <div class="card-image-zone swsh"></div>
+    <div class="card-type-line">SwSh Block · Psychic · Modified</div>
+    <div class="card-attacks">
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+          <div class="energy-dot real"></div>
+        </div>
+        <span class="attack-name">Real</span>
+        <span class="attack-count real">30</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot proxy"></div>
+          <div class="energy-dot proxy"></div>
+          <div class="energy-dot proxy"></div>
+        </div>
+        <span class="attack-name">Proxy</span>
+        <span class="attack-count proxy">15</span>
+      </div>
+      <div class="attack-row">
+        <div class="energy-cost">
+          <div class="energy-dot missing"></div>
+          <div class="energy-dot missing"></div>
+          <div class="energy-dot missing"></div>
+        </div>
+        <span class="attack-name">Missing</span>
+        <span class="attack-count missing">15</span>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="card-footer-cell">
+        <span class="cfc-label">Status</span>
+        <span class="cfc-val" style="color:var(--red)">WIP</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Era</span>
+        <span class="cfc-val">SwSh</span>
+      </div>
+      <div class="card-footer-cell">
+        <span class="cfc-label">Missing</span>
+        <span class="cfc-val" style="color:var(--red)">15</span>
+      </div>
+    </div>
+    <div class="card-number">
+      <span>006/014</span>
+      <span class="card-number-illus">Illus. Personal Archive</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Global stats strip at bottom -->
+<div class="stats-strip">
+  <div class="stats-strip-inner">
+    <div class="strip-stat">
+      <span class="strip-val" style="color:var(--yellow)">14</span>
+      <span class="strip-lbl">Total Decks</span>
+    </div>
+    <div class="strip-stat">
+      <span class="strip-val" style="color:#4DB875">621</span>
+      <span class="strip-lbl">Cards Real</span>
+    </div>
+    <div class="strip-stat">
+      <span class="strip-val" style="color:#9878E0">143</span>
+      <span class="strip-lbl">Proxied</span>
+    </div>
+    <div class="strip-stat">
+      <span class="strip-val" style="color:#DD4422">63</span>
+      <span class="strip-lbl">Missing</span>
+    </div>
+    <div class="strip-stat">
+      <span class="strip-val" style="color:#5AAEDC">24</span>
+      <span class="strip-lbl">On Order</span>
+    </div>
+    <div class="strip-stat">
+      <span class="strip-val" style="color:var(--yellow)">9</span>
+      <span class="strip-lbl">Playable</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

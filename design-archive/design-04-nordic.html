@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Archive — Nordic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:   #F4F0E8;
+    --paper-d: #EAE4D8;
+    --ink:     #252320;
+    --ink-2:   #6B6660;
+    --ink-3:   #A8A4A0;
+    --rule:    #D8D2C8;
+    --sage:    #6D8C72;
+    --sage-l:  #EAF0EA;
+    --sage-d:  #3D5C42;
+    --amber:   #B87828;
+    --red:     #8A2820;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+  }
+
+  /* ── HEADER ─────────────────────────────────── */
+  .site-header {
+    padding: 28px 0 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .header-top {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 20px;
+  }
+
+  .header-brand {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .header-brand span {
+    font-weight: 400;
+    font-style: italic;
+    color: var(--ink-2);
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+  }
+
+  .header-nav a {
+    font-size: .75rem;
+    font-weight: 400;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    text-decoration: none;
+    transition: color .2s;
+  }
+
+  .header-nav a:hover, .header-nav a.active { color: var(--ink); }
+
+  .header-issue {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .header-issue-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    margin: 0 20px;
+  }
+
+  /* ── TITLE SECTION ───────────────────────────── */
+  .title-section {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 64px 40px 52px;
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 60px;
+    align-items: end;
+  }
+
+  .title-eyebrow {
+    font-size: .7rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+
+  .title-main {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 3.8rem;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    color: var(--ink);
+  }
+
+  .title-main em {
+    font-style: italic;
+    color: var(--ink-2);
+  }
+
+  .title-aside {
+    padding-bottom: 4px;
+  }
+
+  .title-desc {
+    font-size: .9rem;
+    color: var(--ink-2);
+    line-height: 1.75;
+    margin-bottom: 24px;
+    font-weight: 300;
+  }
+
+  .title-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ts-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .ts-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .ts-lbl {
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+
+  .ts-val {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .ts-val.warn { color: var(--amber); }
+
+  /* ── ERA FILTER ──────────────────────────────── */
+  .era-filter {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .ef-lbl {
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+
+  .ef-items {
+    display: flex;
+    gap: 0;
+  }
+
+  .ef-item {
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 4px 14px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-family: 'Jost', sans-serif;
+    transition: color .15s;
+    border-right: 1px solid var(--rule);
+  }
+
+  .ef-item:last-child { border-right: none; }
+  .ef-item:hover { color: var(--ink); }
+  .ef-item.active { color: var(--sage-d); font-weight: 500; }
+
+  /* ── DECK LIST ───────────────────────────────── */
+  .deck-list {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .deck-item {
+    padding: 32px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 48px 1fr 220px;
+    gap: 28px;
+    align-items: start;
+    cursor: pointer;
+    transition: none;
+  }
+
+  .deck-item:hover .deck-item-name { color: var(--sage-d); }
+
+  .deck-item-num {
+    font-family: 'Lora', Georgia, serif;
+    font-size: .75rem;
+    color: var(--ink-3);
+    font-style: italic;
+    padding-top: 5px;
+    text-align: right;
+    padding-right: 4px;
+    border-right: 1px solid var(--rule);
+  }
+
+  .deck-item-main {}
+
+  .deck-item-era {
+    font-size: .65rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .deck-item-era.hgss { color: var(--amber); }
+  .deck-item-era.bw   { color: var(--ink-2); }
+  .deck-item-era.xy   { color: var(--sage); }
+  .deck-item-era.sm   { color: var(--red); }
+  .deck-item-era.swsh { color: #4A6EA8; }
+  .deck-item-era.sv   { color: #8A4060; }
+
+  .deck-item-name {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 10px;
+    transition: color .2s;
+  }
+
+  .deck-item-primer {
+    font-size: .82rem;
+    color: var(--ink-2);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .deck-item-side {
+    padding-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Thin status row */
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .7rem;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .status-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .sr-key {
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-size: .63rem;
+    font-weight: 500;
+  }
+
+  .sr-val { font-size: .85rem; color: var(--ink); }
+  .sr-val.sage    { color: var(--sage-d); }
+  .sr-val.amber   { color: var(--amber); }
+  .sr-val.red     { color: var(--red); }
+
+  /* Progress line */
+  .deck-progress {
+    margin-top: 10px;
+    display: flex;
+    height: 2px;
+    gap: 1px;
+  }
+
+  .dp-real    { background: var(--sage); }
+  .dp-proxy   { background: var(--ink-3); }
+  .dp-ordered { background: var(--amber); }
+  .dp-missing { background: var(--red); }
+
+  /* ── BUY LIST SECTION ────────────────────────── */
+  .buy-section {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .buy-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+
+  .buy-title em { font-style: italic; color: var(--red); }
+
+  .buy-desc {
+    font-size: .82rem;
+    color: var(--ink-2);
+    line-height: 1.65;
+    margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  .buy-link {
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--sage-d);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid var(--sage);
+    padding-bottom: 1px;
+  }
+
+  .buy-top-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .buy-row {
+    display: grid;
+    grid-template-columns: 1fr 40px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .buy-row:last-child { border-bottom: none; }
+
+  .buy-row-name {
+    font-family: 'Lora', Georgia, serif;
+    font-size: .92rem;
+    font-weight: 500;
+  }
+
+  .buy-row-era {
+    font-size: .65rem;
+    color: var(--ink-3);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .buy-row-num {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--red);
+    text-align: right;
+  }
+
+  /* ── FOOTER ──────────────────────────────────── */
+  .site-footer {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-top">
+    <a href="#" class="header-brand">Deck Archive <span>— personal collection</span></a>
+    <nav>
+      <ul class="header-nav">
+        <li><a href="#" class="active">Decks</a></li>
+        <li><a href="#">Eras</a></li>
+        <li><a href="#">Statistics</a></li>
+        <li><a href="#">Buy List</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="header-issue">
+    <span>Pokémon TCG</span>
+    <div class="header-issue-rule"></div>
+    <span>14 decks · 6 eras · 847 cards</span>
+  </div>
+</header>
+
+<section class="title-section">
+  <div>
+    <div class="title-eyebrow">Full collection overview</div>
+    <h1 class="title-main">All decks,<br>every <em>era.</em></h1>
+  </div>
+  <aside class="title-aside">
+    <p class="title-desc">Physical decks catalogued from HeartGold & SoulSilver through Scarlet & Violet. Status-tracked, proxy-aware.</p>
+    <div class="title-stats">
+      <div class="ts-row">
+        <span class="ts-lbl">Total decks</span>
+        <span class="ts-val">14</span>
+      </div>
+      <div class="ts-row">
+        <span class="ts-lbl">Cards real</span>
+        <span class="ts-val">621</span>
+      </div>
+      <div class="ts-row">
+        <span class="ts-lbl">Cards missing</span>
+        <span class="ts-val warn">63</span>
+      </div>
+      <div class="ts-row">
+        <span class="ts-lbl">Playable now</span>
+        <span class="ts-val">9 of 14</span>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<div class="era-filter">
+  <span class="ef-lbl">Filter</span>
+  <div class="ef-items">
+    <button class="ef-item active">All</button>
+    <button class="ef-item">HGSS</button>
+    <button class="ef-item">BW</button>
+    <button class="ef-item">XY</button>
+    <button class="ef-item">SM</button>
+    <button class="ef-item">SwSh</button>
+    <button class="ef-item">SV</button>
+  </div>
+</div>
+
+<div class="deck-list">
+
+  <div class="deck-item">
+    <div class="deck-item-num">01</div>
+    <div class="deck-item-main">
+      <div class="deck-item-era hgss">HGSS Block</div>
+      <div class="deck-item-name">Magnezone Prime &amp; Eelektrik</div>
+      <div class="deck-item-primer">The classic HGSS-era electric engine. Eelektrik's Dynamotor ability recycles Energy from the discard each turn; Magnezone Prime closes games with Lost Burn.</div>
+      <div class="deck-progress">
+        <div class="dp-real" style="flex:60"></div>
+      </div>
+    </div>
+    <div class="deck-item-side">
+      <div class="status-row">
+        <span class="sr-key">Status</span>
+        <span class="sr-val sage">All Real</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Cards</span>
+        <span class="sr-val">60 / 60</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Real</span>
+        <span class="sr-val">60</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-item">
+    <div class="deck-item-num">02</div>
+    <div class="deck-item-main">
+      <div class="deck-item-era hgss">HGSS Block</div>
+      <div class="deck-item-name">Reshiram &amp; Typhlosion</div>
+      <div class="deck-item-primer">A fire-energy acceleration build pairing Typhlosion Prime's Afterburner ability with Reshiram's Blue Flare. Currently incomplete — 10 cards still missing.</div>
+      <div class="deck-progress">
+        <div class="dp-real"    style="flex:42"></div>
+        <div class="dp-proxy"   style="flex:8"></div>
+        <div class="dp-missing" style="flex:10"></div>
+      </div>
+    </div>
+    <div class="deck-item-side">
+      <div class="status-row">
+        <span class="sr-key">Status</span>
+        <span class="sr-val amber">WIP</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Real</span>
+        <span class="sr-val">42</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Missing</span>
+        <span class="sr-val red">10</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-item">
+    <div class="deck-item-num">03</div>
+    <div class="deck-item-main">
+      <div class="deck-item-era bw">BW Block</div>
+      <div class="deck-item-name">Blastoise / Keldeo-EX</div>
+      <div class="deck-item-primer">Blastoise's Deluge ability drops Water Energy freely from hand to bench; Keldeo-EX's Secret Sword delivers the damage. 12 proxied cards keeping it playable.</div>
+      <div class="deck-progress">
+        <div class="dp-real"  style="flex:48"></div>
+        <div class="dp-proxy" style="flex:12"></div>
+      </div>
+    </div>
+    <div class="deck-item-side">
+      <div class="status-row">
+        <span class="sr-key">Status</span>
+        <span class="sr-val sage">Playable</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Real</span>
+        <span class="sr-val">48</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Proxy</span>
+        <span class="sr-val">12</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-item">
+    <div class="deck-item-num">04</div>
+    <div class="deck-item-main">
+      <div class="deck-item-era xy">XY Block</div>
+      <div class="deck-item-name">Night March</div>
+      <div class="deck-item-primer">The definitive XY-era aggressive deck. Uses Joltik, Pumpkaboo and Lampent discarded to the Lost Zone to enable Night March's scaling damage. 10 cards on order.</div>
+      <div class="deck-progress">
+        <div class="dp-real"    style="flex:50"></div>
+        <div class="dp-ordered" style="flex:10"></div>
+      </div>
+    </div>
+    <div class="deck-item-side">
+      <div class="status-row">
+        <span class="sr-key">Status</span>
+        <span class="sr-val">Awaiting</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Real</span>
+        <span class="sr-val">50</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">On order</span>
+        <span class="sr-val amber">10</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-item">
+    <div class="deck-item-num">05</div>
+    <div class="deck-item-main">
+      <div class="deck-item-era sm">Sun &amp; Moon Block</div>
+      <div class="deck-item-name">Zoroark-GX Control</div>
+      <div class="deck-item-primer">Uses Zoroark-GX's Trade ability to cycle cards while locking the opponent's resources. One of the most consistent control decks across all eras.</div>
+      <div class="deck-progress">
+        <div class="dp-real"  style="flex:54"></div>
+        <div class="dp-proxy" style="flex:6"></div>
+      </div>
+    </div>
+    <div class="deck-item-side">
+      <div class="status-row">
+        <span class="sr-key">Status</span>
+        <span class="sr-val sage">Playable</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Real</span>
+        <span class="sr-val">54</span>
+      </div>
+      <div class="status-row">
+        <span class="sr-key">Proxy</span>
+        <span class="sr-val">6</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<section class="buy-section">
+  <div>
+    <h2 class="buy-title">Cards that need<br><em>buying</em></h2>
+    <p class="buy-desc">63 cards missing across all decks. Sorted by quantity needed — buy in bulk to stock multiple decks at once.</p>
+    <a href="#" class="buy-link">View full buy list</a>
+  </div>
+  <div class="buy-top-items">
+    <div class="buy-row">
+      <div>
+        <div class="buy-row-name">Ultra Ball</div>
+        <div class="buy-row-era">BW · Dark Explorers</div>
+      </div>
+      <div class="buy-row-num">15</div>
+    </div>
+    <div class="buy-row">
+      <div>
+        <div class="buy-row-name">Professor Juniper</div>
+        <div class="buy-row-era">BW · BW Base</div>
+      </div>
+      <div class="buy-row-num">12</div>
+    </div>
+    <div class="buy-row">
+      <div>
+        <div class="buy-row-name">N</div>
+        <div class="buy-row-era">BW · Noble Victories</div>
+      </div>
+      <div class="buy-row-num">8</div>
+    </div>
+    <div class="buy-row">
+      <div>
+        <div class="buy-row-name">Rare Candy</div>
+        <div class="buy-row-era">HGSS · Unleashed</div>
+      </div>
+      <div class="buy-row-num">6</div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <span>Deck Archive — personal</span>
+  <span>Public read-only view</span>
+</footer>
+
+</body>
+</html>

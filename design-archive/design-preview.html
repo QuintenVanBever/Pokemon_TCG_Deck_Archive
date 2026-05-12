@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokémon TCG Deck Archive — Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #0B0C10;
+      --bg-1:        #111318;
+      --bg-2:        #181A21;
+      --bg-3:        #1F2129;
+      --bg-hover:    #252830;
+      --border:      #252830;
+      --border-sub:  #1C1E25;
+      --border-gold: rgba(180,140,50,.35);
+      --border-gold-bright: rgba(200,160,60,.6);
+      --text:        #EDE8DC;
+      --text-2:      #9A9590;
+      --text-3:      #5C5850;
+      --gold:        #C4973A;
+      --gold-bright: #E8B84D;
+      --gold-dim:    rgba(196,151,58,.12);
+      --real:        #5BA87A;
+      --real-bg:     rgba(91,168,122,.1);
+      --proxy:       #8B6FE8;
+      --proxy-bg:    rgba(139,111,232,.1);
+      --missing:     #D4624A;
+      --missing-bg:  rgba(212,98,74,.1);
+      --ordered:     #4F9EC4;
+      --ordered-bg:  rgba(79,158,196,.1);
+      --font-d: 'Cormorant Garamond', Georgia, serif;
+      --font-b: 'Outfit', system-ui, sans-serif;
+      --font-m: 'Space Mono', monospace;
+      --r:  6px;
+      --rs: 4px;
+      --rl: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-b);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ─────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,12,16,.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 2rem;
+      height: 56px; padding: 0 2rem;
+    }
+    .nav-logo {
+      font-family: var(--font-d); font-size: 1.15rem; font-weight: 600;
+      color: var(--text); text-decoration: none;
+      display: flex; align-items: center; gap: .55rem; flex-shrink: 0;
+    }
+    .logo-mark {
+      width: 26px; height: 26px; border-radius: var(--rs);
+      background: var(--gold-dim); border: 1px solid var(--border-gold);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; color: var(--gold); font-family: var(--font-m);
+    }
+    .nav-links { display: flex; gap: 0; list-style: none; flex: 1; }
+    .nav-links a {
+      display: block; padding: .3rem .85rem;
+      font-size: .78rem; font-weight: 500; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-2);
+      text-decoration: none; transition: color .15s; position: relative;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links a.active {
+      color: var(--text);
+    }
+    .nav-links a.active::after {
+      content: ''; position: absolute; bottom: -1px;
+      left: .85rem; right: .85rem; height: 1px; background: var(--gold);
+    }
+    .nav-search {
+      display: flex; align-items: center; gap: .5rem;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r);
+      padding: .38rem .8rem; font-size: .8rem; color: var(--text-3);
+      cursor: pointer; transition: border-color .2s; min-width: 200px;
+    }
+    .nav-search:hover { border-color: var(--border-gold); }
+    .nav-search-kbd {
+      margin-left: auto; background: var(--bg-2);
+      border: 1px solid var(--border); border-radius: 3px;
+      padding: 1px 5px; font-size: .65rem; font-family: var(--font-m); color: var(--text-3);
+    }
+
+    /* ── HERO ─────────────────────────────────────── */
+    .hero {
+      padding: 5.5rem 2rem 3.5rem;
+      max-width: 1400px; margin: 0 auto;
+    }
+    .eyebrow {
+      display: flex; align-items: center; gap: .7rem;
+      font-family: var(--font-m); font-size: .65rem;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+      margin-bottom: 1.4rem;
+    }
+    .eyebrow::before {
+      content: ''; display: block; width: 28px; height: 1px; background: var(--gold);
+    }
+    .hero-title {
+      font-family: var(--font-d);
+      font-size: clamp(3.5rem, 7.5vw, 6.5rem);
+      font-weight: 300; line-height: .95; letter-spacing: -.02em;
+      margin-bottom: .4em;
+    }
+    .hero-title em { font-style: italic; color: var(--gold-bright); }
+    .hero-sub {
+      font-size: .95rem; color: var(--text-2); font-weight: 300;
+      max-width: 420px; line-height: 1.75; margin-bottom: 2.5rem;
+    }
+    .hero-stats { display: flex; gap: 2.5rem; align-items: center; }
+    .h-stat { display: flex; flex-direction: column; gap: .2rem; }
+    .h-stat-val {
+      font-family: var(--font-m); font-size: 1.55rem; font-weight: 700;
+      color: var(--text); line-height: 1;
+    }
+    .h-stat-lbl {
+      font-size: .68rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .1em;
+    }
+    .h-sep { width: 1px; height: 36px; background: var(--border); }
+
+    /* ── SECTION ─────────────────────────────────── */
+    .section { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem 4rem; }
+    .sec-hd {
+      display: flex; align-items: baseline; gap: .9rem;
+      margin-bottom: 1.6rem; padding-bottom: .9rem; border-bottom: 1px solid var(--border);
+    }
+    .sec-title { font-family: var(--font-d); font-size: 1.45rem; font-weight: 500; letter-spacing: -.01em; }
+    .sec-count { font-family: var(--font-m); font-size: .68rem; color: var(--text-3); }
+    .sec-action { margin-left: auto; font-size: .76rem; color: var(--gold); text-decoration: none; font-weight: 500; }
+
+    /* ── DECK GRID ───────────────────────────────── */
+    .deck-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 1.1rem;
+    }
+    .deck-card {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--rl); overflow: hidden;
+      text-decoration: none; color: inherit; display: block;
+      transition: border-color .22s, transform .22s, box-shadow .22s;
+      animation: fadeUp .4s ease both;
+    }
+    .deck-card:nth-child(2) { animation-delay: .07s; }
+    .deck-card:nth-child(3) { animation-delay: .12s; }
+    .deck-card:nth-child(4) { animation-delay: .17s; }
+    .deck-card:nth-child(5) { animation-delay: .22s; }
+    .deck-card:nth-child(6) { animation-delay: .27s; }
+    .deck-card:hover {
+      border-color: var(--border-gold); transform: translateY(-3px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.45), 0 0 0 1px var(--border-gold);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .dc-img {
+      height: 130px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dc-img-ph {
+      font-family: var(--font-d); font-size: 4rem;
+      opacity: .07; user-select: none; color: var(--text);
+    }
+    .dc-img::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, var(--bg-1));
+    }
+    .dc-img.hgss { background: linear-gradient(135deg, #1A1208, #261A0A); }
+    .dc-img.bw   { background: linear-gradient(135deg, #0D1218, #131C24); }
+    .dc-img.xy   { background: linear-gradient(135deg, #0D1610, #14201A); }
+    .dc-img.sm   { background: linear-gradient(135deg, #1A1008, #261610); }
+    .dc-img.swsh { background: linear-gradient(135deg, #0A0E1A, #101826); }
+    .dc-img.sv   { background: linear-gradient(135deg, #1A0C0E, #261012); }
+    .dc-badges {
+      position: absolute; top: .55rem; left: .55rem; z-index: 1;
+      display: flex; gap: .3rem; flex-wrap: wrap;
+    }
+    .badge {
+      font-size: .6rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; padding: .18rem .48rem;
+      border-radius: 3px; font-family: var(--font-m);
+    }
+    .badge.hgss { background: rgba(196,135,59,.2); color: #E8A850; border: 1px solid rgba(196,135,59,.4); }
+    .badge.bw   { background: rgba(107,143,168,.2); color: #8BB0C8; border: 1px solid rgba(107,143,168,.4); }
+    .badge.xy   { background: rgba(90,138,106,.2);  color: #7AB08A; border: 1px solid rgba(90,138,106,.4); }
+    .badge.sm   { background: rgba(212,120,74,.2);  color: #E8946A; border: 1px solid rgba(212,120,74,.4); }
+    .badge.swsh { background: rgba(74,123,212,.2);  color: #6A9BE8; border: 1px solid rgba(74,123,212,.4); }
+    .badge.sv   { background: rgba(196,74,90,.2);   color: #E8706A; border: 1px solid rgba(196,74,90,.4); }
+    .badge.playable { background: rgba(91,168,122,.15); color: var(--real); border: 1px solid rgba(91,168,122,.3); }
+    .badge.wip      { background: rgba(212,98,74,.15);  color: var(--missing); border: 1px solid rgba(212,98,74,.3); }
+    .badge.awaiting { background: rgba(79,158,196,.15); color: var(--ordered); border: 1px solid rgba(79,158,196,.3); }
+    .badge.allreal  { background: rgba(196,151,58,.15); color: var(--gold); border: 1px solid rgba(196,151,58,.3); }
+    .dc-body { padding: .85rem 1rem 1rem; }
+    .dc-name {
+      font-family: var(--font-d); font-size: 1.1rem; font-weight: 600;
+      letter-spacing: -.01em; line-height: 1.2; margin-bottom: .25rem;
+    }
+    .dc-meta { font-size: .7rem; color: var(--text-3); font-family: var(--font-m); margin-bottom: .7rem; }
+    .progress {
+      display: flex; gap: 2px; height: 3px;
+      border-radius: 2px; overflow: hidden; margin-bottom: .55rem;
+    }
+    .p-real    { background: var(--real); }
+    .p-proxy   { background: var(--proxy); }
+    .p-ordered { background: var(--ordered); }
+    .p-missing { background: var(--missing); }
+    .dc-counts { display: flex; gap: .7rem; }
+    .count {
+      display: flex; align-items: center; gap: .28rem;
+      font-family: var(--font-m); font-size: .65rem; color: var(--text-3);
+    }
+    .dot { width: 5px; height: 5px; border-radius: 50%; }
+    .dot.real    { background: var(--real); }
+    .dot.proxy   { background: var(--proxy); }
+    .dot.missing { background: var(--missing); }
+    .dot.ordered { background: var(--ordered); }
+
+    /* ── DIVIDER ─────────────────────────────────── */
+    .view-div {
+      max-width: 1400px; margin: 4rem auto 0; padding: 0 2rem;
+      display: flex; align-items: center; gap: 1rem;
+      font-family: var(--font-m); font-size: .6rem;
+      color: var(--text-3); text-transform: uppercase; letter-spacing: .15em;
+    }
+    .view-div::before, .view-div::after {
+      content: ''; flex: 1; height: 1px; background: var(--border-sub);
+    }
+
+    /* ── DECK DETAIL ─────────────────────────────── */
+    .page-hd {
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem 2rem; position: relative; overflow: hidden;
+    }
+    .page-hd::before {
+      content: ''; position: absolute; right: -80px; top: -80px;
+      width: 480px; height: 480px; pointer-events: none;
+      background: radial-gradient(ellipse, rgba(196,151,58,.05) 0%, transparent 68%);
+    }
+    .page-hd-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr auto; gap: 2rem;
+    }
+    .breadcrumb {
+      display: flex; align-items: center; gap: .45rem;
+      font-size: .72rem; color: var(--text-3);
+      font-family: var(--font-m); margin-bottom: .9rem;
+    }
+    .breadcrumb a { color: var(--text-3); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--text); }
+    .bc-sep { opacity: .35; }
+    .page-title {
+      font-family: var(--font-d);
+      font-size: clamp(1.9rem, 3.5vw, 3rem);
+      font-weight: 500; letter-spacing: -.02em; line-height: 1.08;
+      margin-bottom: .7rem;
+    }
+    .hd-badges { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+    .badge.lg { font-size: .68rem; padding: .28rem .65rem; }
+    .page-primer {
+      font-size: .9rem; color: var(--text-2); font-weight: 300;
+      line-height: 1.75; max-width: 580px;
+    }
+    .hd-actions { display: flex; flex-direction: column; gap: .45rem; padding-top: .4rem; }
+    .btn {
+      padding: .45rem 1rem; font-size: .76rem; font-weight: 500;
+      border-radius: var(--r); border: 1px solid var(--border);
+      background: transparent; color: var(--text-2); cursor: pointer;
+      font-family: var(--font-b); letter-spacing: .03em;
+      transition: border-color .15s, color .15s;
+      white-space: nowrap; text-align: left;
+    }
+    .btn:hover { border-color: var(--border-gold); color: var(--text); }
+    .btn.primary {
+      background: var(--gold-dim); border-color: var(--border-gold); color: var(--gold);
+    }
+    .btn.primary:hover { background: rgba(196,151,58,.2); }
+
+    /* stats bar */
+    .stats-bar {
+      position: sticky; top: 56px; z-index: 50;
+      background: rgba(11,12,16,.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-bar-inner {
+      max-width: 1400px; margin: 0 auto; padding: 0 2rem;
+      display: flex; align-items: center; height: 42px;
+    }
+    .sb-item {
+      display: flex; align-items: center; gap: .45rem;
+      padding: 0 1.1rem; border-right: 1px solid var(--border); height: 100%;
+    }
+    .sb-item:first-child { padding-left: 0; }
+    .sb-item:last-child { border-right: none; }
+    .sb-num { font-family: var(--font-m); font-size: .92rem; font-weight: 700; line-height: 1; }
+    .sb-lbl { font-size: .67rem; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+    .sb-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* toolbar */
+    .toolbar {
+      max-width: 1400px; margin: 0 auto; padding: 1.1rem 2rem;
+      display: flex; gap: .4rem; align-items: center;
+    }
+    .filter-btn {
+      padding: .32rem .75rem; font-size: .72rem; font-weight: 500;
+      border-radius: var(--rs); border: 1px solid var(--border);
+      background: transparent; color: var(--text-2); cursor: pointer;
+      font-family: var(--font-b); transition: all .14s;
+    }
+    .filter-btn:hover { border-color: var(--border-gold); color: var(--text); }
+    .filter-btn.active { background: var(--gold-dim); border-color: var(--border-gold); color: var(--gold); }
+    .filter-sep { width: 1px; height: 18px; background: var(--border); margin: 0 .2rem; }
+    .group-toggle { margin-left: auto; display: flex; border: 1px solid var(--border); border-radius: var(--rs); overflow: hidden; }
+    .gt-btn {
+      padding: .28rem .7rem; font-size: .68rem; font-weight: 500;
+      border: none; border-right: 1px solid var(--border);
+      background: transparent; color: var(--text-2); cursor: pointer;
+      font-family: var(--font-b); text-transform: uppercase; letter-spacing: .04em;
+      transition: all .14s;
+    }
+    .gt-btn:last-child { border-right: none; }
+    .gt-btn.active { background: var(--bg-2); color: var(--text); }
+
+    /* deck content */
+    .deck-body { max-width: 1400px; margin: 0 auto; padding: 0 2rem 4rem; }
+    .cg-hd {
+      display: flex; align-items: center; gap: .7rem;
+      margin-bottom: .9rem; font-size: .68rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .12em;
+      color: var(--text-3); font-family: var(--font-m);
+    }
+    .cg-hd::after { content: ''; flex: 1; height: 1px; background: var(--border-sub); }
+    .cg-count {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 3px; padding: 0 6px; font-size: .62rem; color: var(--text-3);
+    }
+    .card-group { margin-bottom: 2.2rem; }
+    .card-list { display: flex; flex-direction: column; gap: 2px; }
+    .card-row {
+      display: grid; grid-template-columns: 42px 1fr auto;
+      gap: .7rem; align-items: center;
+      padding: .45rem .7rem; border-radius: var(--r);
+      background: var(--bg-1); border: 1px solid transparent;
+      cursor: pointer; transition: all .13s;
+    }
+    .card-row:hover { border-color: var(--border); background: var(--bg-2); }
+    .card-thumb {
+      width: 42px; height: 58px; border-radius: 4px;
+      background: var(--bg-3); border: 1px solid var(--border-sub);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .55rem; color: var(--text-3); overflow: hidden;
+      font-family: var(--font-m); flex-shrink: 0;
+    }
+    .card-info { min-width: 0; }
+    .card-name {
+      font-family: var(--font-d); font-size: .92rem; font-weight: 600;
+      color: var(--text); letter-spacing: -.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: .12rem;
+    }
+    .card-sub { font-size: .68rem; color: var(--text-3); font-family: var(--font-m); }
+    .card-pips { display: flex; gap: .35rem; flex-shrink: 0; }
+    .pip {
+      display: flex; align-items: center; gap: .2rem;
+      font-family: var(--font-m); font-size: .65rem; font-weight: 700;
+      padding: .18rem .42rem; border-radius: 3px;
+    }
+    .pip.real    { background: var(--real-bg);    color: var(--real); }
+    .pip.proxy   { background: var(--proxy-bg);   color: var(--proxy); }
+    .pip.missing { background: var(--missing-bg); color: var(--missing); }
+    .pip.ordered { background: var(--ordered-bg); color: var(--ordered); }
+
+    /* visual grid */
+    .card-vgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+      gap: .9rem;
+    }
+    .cv-item { position: relative; cursor: pointer; }
+    .cv-face {
+      width: 100%; aspect-ratio: 63/88; border-radius: 6px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem; color: var(--text-3); font-family: var(--font-m);
+      transition: all .18s; overflow: hidden;
+    }
+    .cv-item:hover .cv-face {
+      border-color: var(--border-gold);
+      box-shadow: 0 0 0 1px var(--border-gold), 0 8px 22px rgba(0,0,0,.4);
+    }
+    .cv-qty {
+      position: absolute; top: .35rem; right: .35rem;
+      width: 19px; height: 19px; border-radius: 50%;
+      background: rgba(11,12,16,.9); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-m); font-size: .6rem; font-weight: 700;
+    }
+    .cv-bar { display: flex; gap: 1px; height: 2px; border-radius: 1px; overflow: hidden; margin-top: .35rem; }
+    .cv-name {
+      font-family: var(--font-d); font-size: .78rem;
+      color: var(--text-2); margin-top: .28rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── ERA PAGE ────────────────────────────────── */
+    .era-layout {
+      display: grid; grid-template-columns: 1fr 270px;
+      gap: 1.75rem; max-width: 1400px; margin: 0 auto;
+      padding: 1.75rem 2rem 4rem;
+    }
+    .panel {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 1.5rem; margin-bottom: 1.2rem;
+    }
+    .panel-title {
+      font-family: var(--font-d); font-size: 1.05rem; font-weight: 600;
+      margin-bottom: 1.1rem; padding-bottom: .7rem; border-bottom: 1px solid var(--border);
+    }
+    .rules-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: .45rem;
+    }
+    .rule {
+      background: var(--bg-2); border: 1px solid var(--border-sub);
+      border-radius: var(--rs); padding: .6rem .7rem;
+      display: flex; flex-direction: column; gap: .12rem;
+    }
+    .rule-lbl {
+      font-family: var(--font-m); font-size: .6rem;
+      text-transform: uppercase; letter-spacing: .1em; color: var(--text-3);
+    }
+    .rule-val { font-size: .85rem; font-weight: 500; }
+    .rule-val.gold { color: var(--gold); }
+    .primer-text { font-size: .86rem; color: var(--text-2); font-weight: 300; line-height: 1.78; }
+
+    /* sidebar */
+    .sidebar-panel {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 1.1rem; margin-bottom: 1rem;
+    }
+    .sp-title {
+      font-family: var(--font-m); font-size: .63rem;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-3); margin-bottom: .7rem;
+    }
+    .sp-list { display: flex; flex-direction: column; gap: .35rem; }
+    .sp-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .42rem .55rem; background: var(--bg-2);
+      border-radius: var(--rs); font-size: .78rem; color: var(--text-2);
+      text-decoration: none; transition: all .13s;
+    }
+    .sp-item:hover { background: var(--bg-3); color: var(--text); }
+    .sp-item.current { color: var(--gold); background: var(--gold-dim); }
+
+    /* ── STATS PAGE ──────────────────────────────── */
+    .stats-headline {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: var(--rl);
+      overflow: hidden; margin-bottom: 1.75rem;
+    }
+    .sh-item {
+      background: var(--bg-1); padding: 1.4rem 1.5rem;
+      display: flex; flex-direction: column; gap: .25rem;
+    }
+    .sh-val {
+      font-family: var(--font-m); font-size: 2rem;
+      font-weight: 700; line-height: 1;
+    }
+    .sh-lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--text-3); }
+    .sh-sub { font-size: .76rem; color: var(--text-2); margin-top: .15rem; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.6rem; }
+    .tab {
+      padding: .55rem 1.2rem; font-size: .8rem; font-weight: 500;
+      color: var(--text-2); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: all .14s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--gold); }
+    .table-wrap {
+      background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--rl); overflow: hidden;
+    }
+    .table-toolbar {
+      padding: .85rem 1.2rem; border-bottom: 1px solid var(--border);
+      display: flex; gap: .4rem; align-items: center;
+    }
+    .table-count {
+      margin-left: auto; font-family: var(--font-m); font-size: .7rem; color: var(--text-3);
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th {
+      text-align: left; font-family: var(--font-m); font-size: .62rem;
+      font-weight: 600; text-transform: uppercase; letter-spacing: .12em;
+      color: var(--text-3); padding: .55rem .8rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: .55rem .8rem; border-bottom: 1px solid var(--border-sub); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-2); }
+    .td-name { font-family: var(--font-d); font-size: .9rem; font-weight: 600; }
+    .td-mono { font-family: var(--font-m); color: var(--text-2); font-size: .78rem; }
+    .td-missing { font-family: var(--font-m); font-weight: 700; color: var(--missing); }
+    .td-ordered { font-family: var(--font-m); color: var(--ordered); }
+    .td-proxy   { font-family: var(--font-m); color: var(--proxy); }
+    .td-decks   { font-family: var(--font-m); font-size: .7rem; color: var(--text-3); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <div class="logo-mark">⬡</div>
+      Deck Archive
+    </a>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Decks</a></li>
+      <li><a href="#era-view">Eras</a></li>
+      <li><a href="#stats-view">Stats</a></li>
+      <li><a href="#">Formats</a></li>
+    </ul>
+    <div class="nav-search">
+      <span style="opacity:.4">⌕</span>
+      Search cards, decks, eras…
+      <kbd class="nav-search-kbd">⌘K</kbd>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ VIEW 1: HOME ══════════════════════════════ -->
+<div class="hero">
+  <div class="eyebrow">Personal Archive · 2024</div>
+  <h1 class="hero-title">Deck<br><em>Archive</em></h1>
+  <p class="hero-sub">
+    A private catalogue of Pokémon TCG decks across all eras. Status-tracked, proxy-ready, buy-list aware.
+  </p>
+  <div class="hero-stats">
+    <div class="h-stat">
+      <span class="h-stat-val">14</span>
+      <span class="h-stat-lbl">Decks</span>
+    </div>
+    <div class="h-sep"></div>
+    <div class="h-stat">
+      <span class="h-stat-val">847</span>
+      <span class="h-stat-lbl">Cards tracked</span>
+    </div>
+    <div class="h-sep"></div>
+    <div class="h-stat">
+      <span class="h-stat-val">9</span>
+      <span class="h-stat-lbl">Playable</span>
+    </div>
+    <div class="h-sep"></div>
+    <div class="h-stat">
+      <span class="h-stat-val">63</span>
+      <span class="h-stat-lbl">Missing</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-hd">
+    <h2 class="sec-title">All Decks</h2>
+    <span class="sec-count">14 decks · 4 formats</span>
+    <a href="#" class="sec-action">Filter →</a>
+  </div>
+  <div class="deck-grid">
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img hgss">
+        <span class="dc-img-ph">♦</span>
+        <div class="dc-badges">
+          <span class="badge hgss">HGSS</span>
+          <span class="badge allreal">All Real</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Magnezone Prime</div>
+        <div class="dc-meta">60 cards · HGSS Block</div>
+        <div class="progress">
+          <div class="p-real" style="flex:60"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>60 real</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img hgss">
+        <span class="dc-img-ph">♠</span>
+        <div class="dc-badges">
+          <span class="badge hgss">HGSS</span>
+          <span class="badge wip">WIP</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Reshiram & Typhlosion</div>
+        <div class="dc-meta">60 cards · HGSS Block</div>
+        <div class="progress">
+          <div class="p-real" style="flex:42"></div>
+          <div class="p-proxy" style="flex:8"></div>
+          <div class="p-missing" style="flex:10"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>42</span>
+          <span class="count"><span class="dot proxy"></span>8</span>
+          <span class="count"><span class="dot missing"></span>10</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img bw">
+        <span class="dc-img-ph">◆</span>
+        <div class="dc-badges">
+          <span class="badge bw">BW</span>
+          <span class="badge playable">Playable</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Blastoise / Keldeo</div>
+        <div class="dc-meta">60 cards · BW Block</div>
+        <div class="progress">
+          <div class="p-real" style="flex:48"></div>
+          <div class="p-proxy" style="flex:12"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>48</span>
+          <span class="count"><span class="dot proxy"></span>12</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img xy">
+        <span class="dc-img-ph">●</span>
+        <div class="dc-badges">
+          <span class="badge xy">XY</span>
+          <span class="badge awaiting">Awaiting</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Night March</div>
+        <div class="dc-meta">60 cards · XY Block</div>
+        <div class="progress">
+          <div class="p-real" style="flex:50"></div>
+          <div class="p-ordered" style="flex:10"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>50</span>
+          <span class="count"><span class="dot ordered"></span>10 ordered</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img sm">
+        <span class="dc-img-ph">★</span>
+        <div class="dc-badges">
+          <span class="badge sm">SM</span>
+          <span class="badge playable">Playable</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Zoroark-GX Control</div>
+        <div class="dc-meta">60 cards · Sun & Moon Block</div>
+        <div class="progress">
+          <div class="p-real" style="flex:54"></div>
+          <div class="p-proxy" style="flex:6"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>54</span>
+          <span class="count"><span class="dot proxy"></span>6</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="deck-card" href="#deck-view">
+      <div class="dc-img swsh">
+        <span class="dc-img-ph">◇</span>
+        <div class="dc-badges">
+          <span class="badge swsh">SwSh</span>
+          <span class="badge wip">WIP</span>
+        </div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-name">Mew VMAX</div>
+        <div class="dc-meta">60 cards · Sword & Shield</div>
+        <div class="progress">
+          <div class="p-real" style="flex:30"></div>
+          <div class="p-proxy" style="flex:15"></div>
+          <div class="p-missing" style="flex:15"></div>
+        </div>
+        <div class="dc-counts">
+          <span class="count"><span class="dot real"></span>30</span>
+          <span class="count"><span class="dot proxy"></span>15</span>
+          <span class="count"><span class="dot missing"></span>15</span>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ══ VIEW 2: DECK DETAIL ═══════════════════════ -->
+<div class="view-div" id="deck-view">Deck Detail View</div>
+
+<div class="page-hd">
+  <div class="page-hd-inner">
+    <div>
+      <div class="breadcrumb">
+        <a href="#">Decks</a><span class="bc-sep">/</span>
+        <span>Magnezone Prime & Eelektrik</span>
+      </div>
+      <h1 class="page-title">Magnezone Prime<br>& Eelektrik</h1>
+      <div class="hd-badges">
+        <span class="badge hgss lg">HGSS Block</span>
+        <span class="badge allreal lg">All Real</span>
+      </div>
+      <p class="page-primer">
+        The classic HGSS-era electric engine. Eelektrik's Dynamotor ability moves Energy from the discard
+        pile to the bench, while Magnezone Prime acts as the primary attacker using Lost Burn.
+        Consistently reaches 100+ damage by turn three.
+      </p>
+    </div>
+    <div class="hd-actions">
+      <button class="btn primary">Generate Proxy PDF</button>
+      <button class="btn">Export Decklist</button>
+      <button class="btn">View Era Rules →</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div class="sb-item">
+      <span class="sb-num">60</span><span class="sb-lbl">Total</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:var(--real)"></span>
+      <span class="sb-num" style="color:var(--real)">60</span><span class="sb-lbl">Real</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:var(--proxy)"></span>
+      <span class="sb-num" style="color:var(--proxy)">0</span><span class="sb-lbl">Proxy</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:var(--missing)"></span>
+      <span class="sb-num" style="color:var(--missing)">0</span><span class="sb-lbl">Missing</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:var(--ordered)"></span>
+      <span class="sb-num" style="color:var(--ordered)">0</span><span class="sb-lbl">Ordered</span>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button class="filter-btn active">All</button>
+  <button class="filter-btn">Proxies only</button>
+  <button class="filter-btn">Missing only</button>
+  <div class="filter-sep"></div>
+  <div class="group-toggle">
+    <button class="gt-btn active">By Type</button>
+    <button class="gt-btn">By Role</button>
+    <button class="gt-btn">Visual Grid</button>
+  </div>
+</div>
+
+<div class="deck-body">
+
+  <div class="card-group">
+    <div class="cg-hd">Pokémon <span class="cg-count">16</span></div>
+    <div class="card-list">
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Magnezone Prime</div>
+          <div class="card-sub">Stage 2 · Lightning · Triumphant</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×3 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Magneton</div>
+          <div class="card-sub">Stage 1 · Lightning · Unleashed</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×3 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Magnemite</div>
+          <div class="card-sub">Basic · Lightning · Unleashed</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Eelektrik</div>
+          <div class="card-sub">Stage 1 · Lightning · Noble Victories</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Cleffa</div>
+          <div class="card-sub">Basic · Colorless · HS Base</div>
+        </div>
+        <div class="card-pips">
+          <span class="pip real">×2 Real</span>
+          <span class="pip proxy">×1 Proxy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-group">
+    <div class="cg-hd">Trainer <span class="cg-count">32</span></div>
+    <div class="card-list">
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Professor Juniper</div>
+          <div class="card-sub">Supporter · BW Base</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">N</div>
+          <div class="card-sub">Supporter · Noble Victories</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Junk Arm</div>
+          <div class="card-sub">Item · Triumphant</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Rare Candy</div>
+          <div class="card-sub">Item · Unleashed</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×4 Real</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-group">
+    <div class="cg-hd">Energy <span class="cg-count">12</span></div>
+    <div class="card-list">
+      <div class="card-row">
+        <div class="card-thumb">IMG</div>
+        <div class="card-info">
+          <div class="card-name">Lightning Energy</div>
+          <div class="card-sub">Basic Energy</div>
+        </div>
+        <div class="card-pips"><span class="pip real">×12 Real</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISUAL GRID PREVIEW -->
+  <div class="card-group" style="margin-top:1.5rem">
+    <div class="cg-hd">Visual Grid — Pokémon <span class="cg-count">16</span></div>
+    <div class="card-vgrid">
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">3</div>
+        <div class="cv-bar"><div style="flex:3;background:var(--real)"></div></div>
+        <div class="cv-name">Magnezone Prime</div>
+      </div>
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">3</div>
+        <div class="cv-bar"><div style="flex:3;background:var(--real)"></div></div>
+        <div class="cv-name">Magneton</div>
+      </div>
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">4</div>
+        <div class="cv-bar"><div style="flex:4;background:var(--real)"></div></div>
+        <div class="cv-name">Magnemite</div>
+      </div>
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">4</div>
+        <div class="cv-bar">
+          <div style="flex:2;background:var(--real)"></div>
+          <div style="flex:2;background:var(--proxy)"></div>
+        </div>
+        <div class="cv-name">Eelektrik</div>
+      </div>
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">3</div>
+        <div class="cv-bar">
+          <div style="flex:2;background:var(--real)"></div>
+          <div style="flex:1;background:var(--proxy)"></div>
+        </div>
+        <div class="cv-name">Cleffa</div>
+      </div>
+      <div class="cv-item">
+        <div class="cv-face">IMG</div>
+        <div class="cv-qty">2</div>
+        <div class="cv-bar">
+          <div style="flex:1;background:var(--real)"></div>
+          <div style="flex:1;background:var(--missing)"></div>
+        </div>
+        <div class="cv-name">Zekrom</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ VIEW 3: ERA PAGE ══════════════════════════ -->
+<div class="view-div" id="era-view">Era Rules Page</div>
+
+<div class="page-hd">
+  <div style="max-width:1400px;margin:0 auto">
+    <div class="breadcrumb">
+      <a href="#">Formats</a><span class="bc-sep">/</span>
+      <a href="#">TCG Modified</a><span class="bc-sep">/</span>
+      <a href="#">HGSS Block</a><span class="bc-sep">/</span>
+      <span>HS Triumphant</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">
+      <h1 class="page-title" style="margin-bottom:0">HS Triumphant</h1>
+      <span class="badge hgss lg">HGSS Block</span>
+    </div>
+    <p class="page-primer">Released November 2010. The fourth HGSS-series set, introducing Prime and Lv.X crossover cards. Features Magnezone Prime, Gengar Prime, and the infamous Junk Arm.</p>
+  </div>
+</div>
+
+<div class="era-layout">
+  <div>
+    <div class="panel">
+      <div class="panel-title">Game Rules</div>
+      <div class="rules-grid">
+        <div class="rule">
+          <span class="rule-lbl">Starting Hand</span>
+          <span class="rule-val">7 cards</span>
+        </div>
+        <div class="rule">
+          <span class="rule-lbl">Prize Cards</span>
+          <span class="rule-val gold">6 prizes</span>
+        </div>
+        <div class="rule">
+          <span class="rule-lbl">First-Turn Attack</span>
+          <span class="rule-val">No</span>
+        </div>
+        <div class="rule">
+          <span class="rule-lbl">Mulligan</span>
+          <span class="rule-val">Opponent draws 1</span>
+        </div>
+        <div class="rule" style="grid-column:1/-1">
+          <span class="rule-lbl">Legal Card Pool</span>
+          <span class="rule-val" style="font-size:.82rem">HGSS — Call of Legends + BW Noble Victories and later sets in rotation</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Era Primer</div>
+      <p class="primer-text">
+        The HGSS format is defined by Pokémon-Prime powerhouses and the "Call for Family" mechanic on many basics.
+        Consistency is everything — draw supporters like Cleffa (HS) and Sage's Training are format staples.
+        Eelektrik / Magnezone remains the top tier archetype; Gothitelle ACE SPEC lock is the premier control strategy.
+        The lack of VS Seeker makes Junk Arm the critical recycling card, and it shows in every competitive list.
+      </p>
+    </div>
+  </div>
+
+  <aside>
+    <div class="sidebar-panel">
+      <div class="sp-title">Decks in this block</div>
+      <div class="sp-list">
+        <a href="#" class="sp-item">
+          Magnezone Prime
+          <span class="badge allreal" style="font-size:.57rem;padding:.14rem .38rem">All Real</span>
+        </a>
+        <a href="#" class="sp-item">
+          Reshiram & Typhlosion
+          <span class="badge wip" style="font-size:.57rem;padding:.14rem .38rem">WIP</span>
+        </a>
+        <a href="#" class="sp-item">
+          Gothitelle Lock
+          <span class="badge playable" style="font-size:.57rem;padding:.14rem .38rem">Playable</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-panel">
+      <div class="sp-title">HGSS Block Sets</div>
+      <div class="sp-list">
+        <a href="#" class="sp-item">HS Base <span style="font-family:var(--font-m);font-size:.65rem;color:var(--text-3)">HS1</span></a>
+        <a href="#" class="sp-item">Unleashed <span style="font-family:var(--font-m);font-size:.65rem;color:var(--text-3)">HS2</span></a>
+        <a href="#" class="sp-item">Undaunted <span style="font-family:var(--font-m);font-size:.65rem;color:var(--text-3)">HS3</span></a>
+        <a href="#" class="sp-item current">Triumphant <span style="font-family:var(--font-m);font-size:.65rem;color:var(--gold)">HS4</span></a>
+        <a href="#" class="sp-item">Call of Legends <span style="font-family:var(--font-m);font-size:.65rem;color:var(--text-3)">HS5</span></a>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ══ VIEW 4: STATS / BUY LIST ══════════════════ -->
+<div class="view-div" id="stats-view">Statistics & Buy List</div>
+
+<div class="section">
+  <div class="stats-headline">
+    <div class="sh-item">
+      <span class="sh-val">14</span>
+      <span class="sh-lbl">Total Decks</span>
+      <span class="sh-sub">9 playable · 5 WIP</span>
+    </div>
+    <div class="sh-item">
+      <span class="sh-val" style="color:var(--real)">621</span>
+      <span class="sh-lbl">Cards Real</span>
+      <span class="sh-sub">across all decks</span>
+    </div>
+    <div class="sh-item">
+      <span class="sh-val" style="color:var(--missing)">63</span>
+      <span class="sh-lbl">Cards Missing</span>
+      <span class="sh-sub">38 unique cards</span>
+    </div>
+    <div class="sh-item">
+      <span class="sh-val" style="color:var(--ordered)">24</span>
+      <span class="sh-lbl">On Order</span>
+      <span class="sh-sub">14 unique cards</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab">Per Deck</div>
+    <div class="tab active">Aggregated Buy List</div>
+    <div class="tab">Per Card</div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <button class="filter-btn active">All Eras</button>
+      <button class="filter-btn">HGSS</button>
+      <button class="filter-btn">BW</button>
+      <button class="filter-btn">XY</button>
+      <button class="filter-btn">SM</button>
+      <span class="table-count">38 unique cards needed</span>
+      <button class="filter-btn">Export CSV</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Card</th>
+          <th>Era / Set</th>
+          <th>Type</th>
+          <th>Missing ↓</th>
+          <th>Ordered</th>
+          <th>Proxied</th>
+          <th>In Decks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-name">Ultra Ball</td>
+          <td><span class="badge bw" style="display:inline-block;margin-right:.4rem">BW</span><span class="td-mono">Dark Explorers</span></td>
+          <td class="td-mono">Item</td>
+          <td class="td-missing">15</td>
+          <td class="td-ordered">4</td>
+          <td class="td-proxy">8</td>
+          <td class="td-decks">6 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">Professor Juniper</td>
+          <td><span class="badge bw" style="display:inline-block;margin-right:.4rem">BW</span><span class="td-mono">BW Base</span></td>
+          <td class="td-mono">Supporter</td>
+          <td class="td-missing">12</td>
+          <td class="td-ordered">0</td>
+          <td class="td-proxy">4</td>
+          <td class="td-decks">5 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">N</td>
+          <td><span class="badge bw" style="display:inline-block;margin-right:.4rem">BW</span><span class="td-mono">Noble Victories</span></td>
+          <td class="td-mono">Supporter</td>
+          <td class="td-missing">8</td>
+          <td class="td-ordered" style="color:var(--ordered)">8</td>
+          <td class="td-proxy">0</td>
+          <td class="td-decks">4 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">Rare Candy</td>
+          <td><span class="badge hgss" style="display:inline-block;margin-right:.4rem">HGSS</span><span class="td-mono">Unleashed</span></td>
+          <td class="td-mono">Item</td>
+          <td class="td-missing">6</td>
+          <td class="td-ordered">0</td>
+          <td class="td-proxy">6</td>
+          <td class="td-decks">3 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">Colress</td>
+          <td><span class="badge bw" style="display:inline-block;margin-right:.4rem">BW</span><span class="td-mono">Plasma Storm</span></td>
+          <td class="td-mono">Supporter</td>
+          <td class="td-missing">5</td>
+          <td class="td-ordered" style="color:var(--ordered)">4</td>
+          <td class="td-proxy">0</td>
+          <td class="td-decks">3 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">Junk Arm</td>
+          <td><span class="badge hgss" style="display:inline-block;margin-right:.4rem">HGSS</span><span class="td-mono">Triumphant</span></td>
+          <td class="td-mono">Item</td>
+          <td class="td-missing">4</td>
+          <td class="td-ordered">0</td>
+          <td class="td-proxy">4</td>
+          <td class="td-decks">2 decks</td>
+        </tr>
+        <tr>
+          <td class="td-name">VS Seeker</td>
+          <td><span class="badge xy" style="display:inline-block;margin-right:.4rem">XY</span><span class="td-mono">Phantom Forces</span></td>
+          <td class="td-mono">Item</td>
+          <td class="td-missing">3</td>
+          <td class="td-ordered">0</td>
+          <td class="td-proxy">3</td>
+          <td class="td-decks">2 decks</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

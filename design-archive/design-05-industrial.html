@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Archive — Industrial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #14181E;
+    --bg-1:   #1C2128;
+    --bg-2:   #222830;
+    --wire:   #2C3340;
+    --wire-b: #3A4455;
+    --text:   #D8DEE8;
+    --text-2: #8898AA;
+    --text-3: #50606C;
+    --yellow: #FFD600;
+    --yellow-d:#C8A800;
+    --yellow-bg: rgba(255,214,0,.06);
+    --orange: #FF6535;
+    --orange-bg: rgba(255,101,53,.08);
+    --teal:   #00C8A0;
+    --teal-bg:rgba(0,200,160,.08);
+    --white:  #F0F4F8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+
+  /* Subtle grid texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  main { position: relative; z-index: 1; }
+
+  /* ── TOP HEADER ─────────────────────────────── */
+  .hdr {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--wire);
+    padding: 0;
+  }
+
+  .hdr-inner {
+    display: flex;
+    align-items: stretch;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 28px;
+    gap: 0;
+    height: 52px;
+  }
+
+  .hdr-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 24px;
+    border-right: 1px solid var(--wire);
+    margin-right: 24px;
+    flex-shrink: 0;
+  }
+
+  .hdr-logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--yellow);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hdr-logo-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  .hdr-logo-text span { color: var(--yellow); }
+
+  .hdr-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    list-style: none;
+    flex: 1;
+  }
+
+  .hdr-nav a {
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    text-decoration: none;
+    border-right: 1px solid var(--wire);
+    transition: color .1s, background .1s;
+  }
+
+  .hdr-nav a:hover { color: var(--text); background: var(--bg-2); }
+
+  .hdr-nav a.active {
+    color: var(--yellow);
+    background: var(--yellow-bg);
+    border-bottom: 2px solid var(--yellow);
+  }
+
+  .hdr-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 20px;
+    border-left: 1px solid var(--wire);
+  }
+
+  .hdr-status {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hdr-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+  }
+
+  /* ── METRIC BAND ─────────────────────────────── */
+  .metric-band {
+    background: var(--bg-1);
+    border-bottom: 2px solid var(--yellow);
+  }
+
+  .metric-band-inner {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 28px;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .metric {
+    padding: 20px 28px 20px 0;
+    margin-right: 28px;
+    border-right: 1px solid var(--wire);
+    min-width: 100px;
+  }
+
+  .metric:last-child { border-right: none; }
+
+  .metric-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -.02em;
+    color: var(--white);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .metric-num.yellow { color: var(--yellow); }
+  .metric-num.orange { color: var(--orange); }
+  .metric-num.teal   { color: var(--teal); }
+
+  .metric-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    display: block;
+  }
+
+  /* ── TOOLBAR ─────────────────────────────────── */
+  .toolbar {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--wire);
+  }
+
+  .tb-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-right: 4px;
+  }
+
+  .tb-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border: 1px solid var(--wire);
+    background: transparent;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all .1s;
+  }
+
+  .tb-btn:hover { border-color: var(--wire-b); color: var(--text); }
+  .tb-btn.active { background: var(--yellow-bg); border-color: var(--yellow-d); color: var(--yellow); }
+
+  .tb-btn.warn.active { background: var(--orange-bg); border-color: var(--orange); color: var(--orange); }
+
+  .tb-sep { width: 1px; height: 20px; background: var(--wire); margin: 0 4px; }
+
+  .tb-search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--wire);
+    padding: 5px 12px;
+    min-width: 220px;
+  }
+
+  .tb-search input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .tb-search input::placeholder { color: var(--text-3); }
+  .tb-search-icon { color: var(--text-3); font-size: 14px; }
+
+  /* ── DECK TABLE ──────────────────────────────── */
+  .deck-table-wrap {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 28px 40px;
+  }
+
+  .deck-table-header {
+    display: grid;
+    grid-template-columns: 52px 48px 60px 1fr 80px 80px 80px 80px 160px 120px;
+    gap: 0;
+    border-bottom: 2px solid var(--wire-b);
+    padding: 8px 0;
+    margin-top: 0;
+  }
+
+  .th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 0 8px;
+  }
+
+  .th:first-child { padding-left: 0; }
+
+  .deck-row {
+    display: grid;
+    grid-template-columns: 52px 48px 60px 1fr 80px 80px 80px 80px 160px 120px;
+    gap: 0;
+    border-bottom: 1px solid var(--wire);
+    padding: 0;
+    cursor: pointer;
+    transition: background .1s;
+  }
+
+  .deck-row:hover { background: var(--bg-1); }
+
+  .deck-row.has-missing { border-left: 3px solid var(--orange); }
+  .deck-row.is-complete { border-left: 3px solid var(--teal); }
+  .deck-row.is-ordered  { border-left: 3px solid var(--yellow); }
+  .deck-row.is-normal   { border-left: 3px solid var(--wire); }
+
+  .td {
+    padding: 14px 8px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .td:first-child { padding-left: 6px; }
+
+  .td-id {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-3);
+    letter-spacing: .06em;
+  }
+
+  .td-era {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+  }
+
+  .td-era.hgss { color: var(--yellow-d); }
+  .td-era.bw   { color: var(--text-2); }
+  .td-era.xy   { color: #5DA888; }
+  .td-era.sm   { color: var(--orange); }
+  .td-era.swsh { color: #5888D0; }
+  .td-era.sv   { color: #C050A0; }
+
+  .td-format {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: var(--text-3);
+  }
+
+  .td-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+
+  .td-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    justify-content: flex-end;
+  }
+
+  .td-num.real    { color: var(--teal); }
+  .td-num.proxy   { color: #8888CC; }
+  .td-num.missing { color: var(--orange); }
+  .td-num.ordered { color: var(--yellow); }
+
+  .td-num.zero { color: var(--text-3); font-size: 14px; font-weight: 400; }
+
+  /* Progress bar cell */
+  .td-progress {
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .td-progress-bar {
+    display: flex;
+    height: 4px;
+    gap: 1px;
+    width: 100%;
+  }
+
+  .pb-real    { background: var(--teal); }
+  .pb-proxy   { background: #6666AA; }
+  .pb-ordered { background: var(--yellow); }
+  .pb-missing { background: var(--orange); }
+
+  .td-progress-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--text-3);
+  }
+
+  /* Status cell */
+  .td-status { justify-content: flex-end; }
+
+  .status-chip {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-left: 3px solid;
+  }
+
+  .status-chip.complete { color: var(--teal);   border-color: var(--teal);   background: var(--teal-bg); }
+  .status-chip.playable { color: var(--teal);   border-color: var(--teal);   background: var(--teal-bg); }
+  .status-chip.wip      { color: var(--orange); border-color: var(--orange); background: var(--orange-bg); }
+  .status-chip.awaiting { color: var(--yellow); border-color: var(--yellow); background: var(--yellow-bg); }
+
+  /* ── ALERT PANEL ─────────────────────────────── */
+  .alert-panel {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 28px 28px;
+  }
+
+  .alert-strip {
+    background: var(--orange-bg);
+    border: 1px solid var(--orange);
+    border-left: 4px solid var(--orange);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .alert-icon {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    color: var(--orange);
+    flex-shrink: 0;
+    border: 1px solid var(--orange);
+    padding: 3px 8px;
+  }
+
+  .alert-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 300;
+  }
+
+  .alert-text strong {
+    font-weight: 600;
+    color: var(--orange);
+  }
+
+  .alert-action {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    text-decoration: none;
+    padding: 5px 14px;
+    border: 1px solid var(--orange);
+    cursor: pointer;
+    background: transparent;
+    flex-shrink: 0;
+    transition: background .1s;
+  }
+
+  .alert-action:hover { background: var(--orange-bg); }
+
+  /* ── SECTION TITLE ───────────────────────────── */
+  .sec-title-row {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 20px 28px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sec-tag {
+    background: var(--yellow);
+    color: var(--bg);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+  }
+
+  .sec-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .sec-rule { flex: 1; height: 1px; background: var(--wire); }
+</style>
+</head>
+<body>
+<main>
+
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-logo">
+      <div class="hdr-logo-mark"></div>
+      <span class="hdr-logo-text">PTG <span>Archive</span></span>
+    </div>
+    <nav>
+      <ul class="hdr-nav">
+        <li><a href="#" class="active">Decks</a></li>
+        <li><a href="#">Era Blocks</a></li>
+        <li><a href="#">Statistics</a></li>
+        <li><a href="#">Buy List</a></li>
+        <li><a href="#">Export</a></li>
+      </ul>
+    </nav>
+    <div class="hdr-right">
+      <span class="hdr-status">System Online</span>
+    </div>
+  </div>
+</header>
+
+<div class="metric-band">
+  <div class="metric-band-inner">
+    <div class="metric">
+      <span class="metric-num">14</span>
+      <span class="metric-lbl">Total Decks</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num teal">9</span>
+      <span class="metric-lbl">Playable</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num">847</span>
+      <span class="metric-lbl">Cards Indexed</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num">621</span>
+      <span class="metric-lbl">Cards Real</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num orange">63</span>
+      <span class="metric-lbl">Missing</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num yellow">24</span>
+      <span class="metric-lbl">On Order</span>
+    </div>
+    <div class="metric">
+      <span class="metric-num">38</span>
+      <span class="metric-lbl">Unique Needed</span>
+    </div>
+  </div>
+</div>
+
+<div class="alert-panel" style="padding-top:20px">
+  <div class="alert-strip">
+    <span class="alert-icon">! ATTENTION</span>
+    <span class="alert-text"><strong>63 cards missing</strong> across 5 decks. Top priority: <strong>15× Ultra Ball</strong> (6 decks), <strong>12× Professor Juniper</strong> (5 decks), <strong>8× N</strong> (4 decks).</span>
+    <button class="alert-action">View Buy List →</button>
+  </div>
+</div>
+
+<div class="sec-title-row">
+  <span class="sec-tag">Deck Index</span>
+  <span class="sec-title">All decks · sorted by era</span>
+  <div class="sec-rule"></div>
+</div>
+
+<div class="toolbar">
+  <span class="tb-label">Era</span>
+  <button class="tb-btn active">ALL</button>
+  <button class="tb-btn">HGSS</button>
+  <button class="tb-btn">BW</button>
+  <button class="tb-btn">XY</button>
+  <button class="tb-btn">SM</button>
+  <button class="tb-btn">SWSH</button>
+  <button class="tb-btn">SV</button>
+  <div class="tb-sep"></div>
+  <span class="tb-label">Status</span>
+  <button class="tb-btn warn active">MISSING ONLY</button>
+  <div class="tb-search">
+    <span class="tb-search-icon">⌕</span>
+    <input type="text" placeholder="Filter decks...">
+  </div>
+</div>
+
+<div class="deck-table-wrap">
+  <div class="deck-table-header">
+    <span class="th">ID</span>
+    <span class="th">Era</span>
+    <span class="th">Fmt</span>
+    <span class="th">Deck Name</span>
+    <span class="th" style="text-align:right">Real</span>
+    <span class="th" style="text-align:right">Proxy</span>
+    <span class="th" style="text-align:right">Miss</span>
+    <span class="th" style="text-align:right">Ord.</span>
+    <span class="th">Completion</span>
+    <span class="th" style="text-align:right">Status</span>
+  </div>
+
+  <div class="deck-row is-complete">
+    <div class="td td-id">001</div>
+    <div class="td td-era hgss">HGSS</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Magnezone Prime &amp; Eelektrik</div>
+    <div class="td td-num real">60</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real" style="flex:60"></div>
+      </div>
+      <span class="td-progress-pct">100% real</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip complete">All Real</span>
+    </div>
+  </div>
+
+  <div class="deck-row has-missing">
+    <div class="td td-id">002</div>
+    <div class="td td-era hgss">HGSS</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Reshiram &amp; Typhlosion</div>
+    <div class="td td-num real">42</div>
+    <div class="td td-num proxy">8</div>
+    <div class="td td-num missing">10</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real"    style="flex:42"></div>
+        <div class="pb-proxy"   style="flex:8"></div>
+        <div class="pb-missing" style="flex:10"></div>
+      </div>
+      <span class="td-progress-pct">70% real · 17% missing</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip wip">WIP</span>
+    </div>
+  </div>
+
+  <div class="deck-row is-normal">
+    <div class="td td-id">003</div>
+    <div class="td td-era bw">BW</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Blastoise / Keldeo-EX</div>
+    <div class="td td-num real">48</div>
+    <div class="td td-num proxy">12</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real"  style="flex:48"></div>
+        <div class="pb-proxy" style="flex:12"></div>
+      </div>
+      <span class="td-progress-pct">80% real · 20% proxy</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip playable">Playable</span>
+    </div>
+  </div>
+
+  <div class="deck-row is-ordered">
+    <div class="td td-id">004</div>
+    <div class="td td-era xy">XY</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Night March</div>
+    <div class="td td-num real">50</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num ordered">10</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real"    style="flex:50"></div>
+        <div class="pb-ordered" style="flex:10"></div>
+      </div>
+      <span class="td-progress-pct">83% real · 17% ordered</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip awaiting">Awaiting</span>
+    </div>
+  </div>
+
+  <div class="deck-row is-normal">
+    <div class="td td-id">005</div>
+    <div class="td td-era sm">SM</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Zoroark-GX Control</div>
+    <div class="td td-num real">54</div>
+    <div class="td td-num proxy">6</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real"  style="flex:54"></div>
+        <div class="pb-proxy" style="flex:6"></div>
+      </div>
+      <span class="td-progress-pct">90% real · 10% proxy</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip playable">Playable</span>
+    </div>
+  </div>
+
+  <div class="deck-row has-missing">
+    <div class="td td-id">006</div>
+    <div class="td td-era swsh">SWSH</div>
+    <div class="td td-format">MOD</div>
+    <div class="td td-name">Mew VMAX</div>
+    <div class="td td-num real">30</div>
+    <div class="td td-num proxy">15</div>
+    <div class="td td-num missing">15</div>
+    <div class="td td-num zero">—</div>
+    <div class="td td-progress">
+      <div class="td-progress-bar">
+        <div class="pb-real"    style="flex:30"></div>
+        <div class="pb-proxy"   style="flex:15"></div>
+        <div class="pb-missing" style="flex:15"></div>
+      </div>
+      <span class="td-progress-pct">50% real · 25% missing</span>
+    </div>
+    <div class="td td-status">
+      <span class="status-chip wip">WIP</span>
+    </div>
+  </div>
+
+</div>
+
+</main>
+</body>
+</html>

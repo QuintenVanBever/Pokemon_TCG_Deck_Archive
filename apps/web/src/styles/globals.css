@@ -1,0 +1,129 @@
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS — Pokémon TCG Archive
+   ═══════════════════════════════════════════════════ */
+:root {
+  /* Core palette */
+  --navy:       #1A3A5C;
+  --navy-deep:  #0E2236;
+  --sky:        #5BC0DE;
+  --sky-l:      #D8EFF8;
+  --yellow:     #F5C518;
+  --yellow-d:   #C49A00;
+  --red:        #D93825;
+  --white:      #FAFAFA;
+  --dark:       #2A2A2A;
+
+  /* Status — muted (text/icons) */
+  --real:    #2E8B57;
+  --proxy:   #7B52C4;
+  --missing: #CC3333;
+  --ordered: #1E78C4;
+
+  /* Status — bright (bars/sleeves) */
+  --real-b:    #3EE080;
+  --proxy-b:   #C090FF;
+  --missing-b: #FF4444;
+  --ordered-b: #44BBFF;
+
+  /* UI surfaces */
+  --panel:        #FFFFFF;
+  --panel-border: rgba(26, 58, 92, 0.12);
+  --bg:           #D8EFF8;
+
+  /* Topbar */
+  --topbar-bg:    #1A3A5C;
+  --topbar-bd:    #F5C518;
+  --topbar-h:     54px;
+
+  /* Typography */
+  --font-d: 'Fredoka One', cursive;
+  --font-b: 'Nunito', 'Segoe UI', sans-serif;
+
+  /* Radii */
+  --r-sm: 3px;
+  --r:    4px;
+  --r-lg: 6px;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--sky-l);
+  color: var(--dark);
+  font-family: var(--font-b);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Subtle grid texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(26, 58, 92, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 58, 92, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* All content sits above the grid */
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--font-b); cursor: pointer; }
+img { display: block; max-width: 100%; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(26,58,92,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(26,58,92,0.35); }
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT UTILITIES
+   ═══════════════════════════════════════════════════ */
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

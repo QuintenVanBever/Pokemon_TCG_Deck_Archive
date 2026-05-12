@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deck Archive — Swiss Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --paper: #F7F7F5;
+    --black: #111111;
+    --gray: #888885;
+    --gray-light: #DDDDDA;
+    --red: #D42B28;
+    --red-dim: rgba(212,43,40,.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--black);
+    font-family: 'Barlow', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── GRID ─────────────────────────────────────── */
+  /* 12-col, 60px cols, 20px gutters = 940px total */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 60px);
+    column-gap: 20px;
+    max-width: 940px;
+    margin: 0 auto;
+  }
+
+  /* ── TOP HEADER ─────────────────────────────── */
+  .top-bar {
+    border-bottom: 3px solid var(--black);
+    padding: 0;
+  }
+
+  .top-bar-inner {
+    display: flex;
+    align-items: stretch;
+    max-width: 940px;
+    margin: 0 auto;
+  }
+
+  .top-bar-logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    padding: 14px 20px 14px 0;
+    border-right: 1px solid var(--black);
+    margin-right: 20px;
+    white-space: nowrap;
+  }
+
+  .top-bar-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex: 1;
+    list-style: none;
+  }
+
+  .top-bar-nav li a {
+    display: flex;
+    align-items: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gray);
+    text-decoration: none;
+    padding: 0 16px;
+    border-right: 1px solid var(--gray-light);
+    transition: color .1s;
+  }
+
+  .top-bar-nav li a:hover, .top-bar-nav li a.active {
+    color: var(--black);
+  }
+
+  .top-bar-nav li.active-item a {
+    color: var(--red);
+  }
+
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--gray);
+    padding-left: 20px;
+  }
+
+  /* ── HERO HEADER ─────────────────────────────── */
+  .hero {
+    padding: 60px 0 40px;
+    border-bottom: 1px solid var(--black);
+    max-width: 940px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(12, 60px);
+    column-gap: 20px;
+  }
+
+  .hero-label {
+    grid-column: 1 / 4;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gray);
+    padding-top: 6px;
+  }
+
+  .hero-number {
+    grid-column: 4 / 8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 140px;
+    font-weight: 800;
+    line-height: .85;
+    color: var(--black);
+    letter-spacing: -.04em;
+  }
+
+  .hero-text {
+    grid-column: 8 / 13;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 4px;
+    gap: 20px;
+  }
+
+  .hero-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+  }
+
+  .hero-desc {
+    font-size: 13px;
+    color: var(--gray);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* ── STATS BAR ───────────────────────────────── */
+  .stats-bar {
+    max-width: 940px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--black);
+  }
+
+  .stats-cell {
+    padding: 20px 0;
+    border-right: 1px solid var(--gray-light);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stats-cell:last-child { border-right: none; }
+
+  .stats-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -.02em;
+  }
+
+  .stats-num.red { color: var(--red); }
+
+  .stats-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+
+  /* ── FILTER ROW ──────────────────────────────── */
+  .filter-row {
+    max-width: 940px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-light);
+  }
+
+  .filter-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-right: 20px;
+  }
+
+  .filter-tags {
+    display: flex;
+    gap: 0;
+  }
+
+  .filter-tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border: 1px solid var(--gray-light);
+    border-right: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--gray);
+    transition: all .1s;
+  }
+
+  .filter-tag:last-child { border-right: 1px solid var(--gray-light); }
+  .filter-tag:hover { color: var(--black); border-color: var(--black); z-index: 1; }
+  .filter-tag.active { background: var(--black); color: var(--bg); border-color: var(--black); }
+
+  /* ── DECK LIST ───────────────────────────────── */
+  .deck-list {
+    max-width: 940px;
+    margin: 0 auto;
+  }
+
+  .deck-row {
+    display: grid;
+    grid-template-columns: 60px 60px 1fr 100px 120px 80px;
+    column-gap: 20px;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--gray-light);
+    cursor: pointer;
+    transition: background .1s;
+  }
+
+  .deck-row:hover { background: var(--paper); margin: 0 -20px; padding-left: 20px; padding-right: 20px; }
+
+  .deck-row-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray);
+    letter-spacing: .08em;
+  }
+
+  .deck-row-era {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+
+  .deck-row-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    color: var(--black);
+    line-height: 1;
+  }
+
+  .deck-row-cards {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    color: var(--gray);
+    letter-spacing: .04em;
+    text-align: right;
+  }
+
+  /* Progress fraction bar */
+  .deck-row-bar {
+    display: flex;
+    height: 4px;
+    gap: 2px;
+  }
+
+  .dbr { height: 100%; }
+  .dbr-real    { background: var(--black); }
+  .dbr-proxy   { background: var(--gray); }
+  .dbr-ordered { background: var(--gray-light); border: 1px solid var(--gray); }
+  .dbr-missing { background: var(--red); }
+
+  .deck-row-status {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .deck-row-status.ok     { color: var(--black); }
+  .deck-row-status.warn   { color: var(--red); }
+  .deck-row-status.info   { color: var(--gray); }
+
+  /* ── COLUMN HEADS ────────────────────────────── */
+  .deck-list-header {
+    display: grid;
+    grid-template-columns: 60px 60px 1fr 100px 120px 80px;
+    column-gap: 20px;
+    padding: 10px 0 8px;
+    border-bottom: 1px solid var(--black);
+    max-width: 940px;
+    margin: 0 auto;
+  }
+
+  .col-head {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+
+  .col-head:nth-child(4), .col-head:nth-child(6) { text-align: right; }
+
+  /* ── FOOTER ──────────────────────────────────── */
+  .site-footer {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 30px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 40px;
+    border-top: 3px solid var(--black);
+    margin-top: 60px;
+  }
+
+  .footer-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+  }
+
+  .footer-note {
+    font-size: 11px;
+    color: var(--gray);
+    font-weight: 300;
+  }
+
+  .footer-link {
+    margin-left: auto;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--red);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* ── BUY-LIST CALLOUT ────────────────────────── */
+  .callout {
+    max-width: 940px;
+    margin: 40px auto 0;
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    border: 1px solid var(--black);
+  }
+
+  .callout-main {
+    padding: 24px 28px;
+    border-right: 1px solid var(--black);
+  }
+
+  .callout-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 8px;
+  }
+
+  .callout-headline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -.01em;
+    line-height: 1.2;
+    color: var(--black);
+  }
+
+  .callout-headline span { color: var(--red); }
+
+  .callout-side {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .callout-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--red);
+    letter-spacing: -.03em;
+  }
+
+  .callout-num-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+</style>
+</head>
+<body>
+
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <div class="top-bar-logo">Deck Archive</div>
+    <nav>
+      <ul class="top-bar-nav">
+        <li class="active-item"><a href="#" class="active">Decks</a></li>
+        <li><a href="#">Eras</a></li>
+        <li><a href="#">Statistics</a></li>
+        <li><a href="#">Buy List</a></li>
+      </ul>
+    </nav>
+    <div class="top-bar-right">Personal archive — read only</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-label">Pokémon TCG<br>Personal Archive</div>
+  <div class="hero-number">14</div>
+  <div class="hero-text">
+    <h1 class="hero-title">Decks catalogued across<br>all eras</h1>
+    <p class="hero-desc">Status-tracked, proxy-ready, bulk buy-list aware. Every physical Pokémon TCG deck in one place.</p>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stats-cell">
+    <span class="stats-num">847</span>
+    <span class="stats-lbl">Cards indexed</span>
+  </div>
+  <div class="stats-cell">
+    <span class="stats-num">621</span>
+    <span class="stats-lbl">Cards real</span>
+  </div>
+  <div class="stats-cell">
+    <span class="stats-num red">63</span>
+    <span class="stats-lbl">Cards missing</span>
+  </div>
+  <div class="stats-cell">
+    <span class="stats-num">9</span>
+    <span class="stats-lbl">Playable</span>
+  </div>
+</div>
+
+<div class="filter-row">
+  <span class="filter-lbl">Filter by era</span>
+  <div class="filter-tags">
+    <button class="filter-tag active">All</button>
+    <button class="filter-tag">HGSS</button>
+    <button class="filter-tag">BW</button>
+    <button class="filter-tag">XY</button>
+    <button class="filter-tag">SM</button>
+    <button class="filter-tag">SwSh</button>
+    <button class="filter-tag">SV</button>
+  </div>
+</div>
+
+<div class="deck-list-header">
+  <span class="col-head">No.</span>
+  <span class="col-head">Era</span>
+  <span class="col-head">Name</span>
+  <span class="col-head">Cards</span>
+  <span class="col-head">Completion</span>
+  <span class="col-head">Status</span>
+</div>
+
+<div class="deck-list">
+
+  <div class="deck-row">
+    <span class="deck-row-num">01</span>
+    <span class="deck-row-era">HGSS</span>
+    <span class="deck-row-name">Magnezone Prime &amp; Eelektrik</span>
+    <span class="deck-row-cards">60 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real" style="flex:60"></div>
+    </div>
+    <span class="deck-row-status ok">All Real</span>
+  </div>
+
+  <div class="deck-row">
+    <span class="deck-row-num">02</span>
+    <span class="deck-row-era">HGSS</span>
+    <span class="deck-row-name">Reshiram &amp; Typhlosion</span>
+    <span class="deck-row-cards">50 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real"    style="flex:42"></div>
+      <div class="dbr dbr-proxy"   style="flex:8"></div>
+      <div class="dbr dbr-missing" style="flex:10"></div>
+    </div>
+    <span class="deck-row-status warn">WIP — 10 miss</span>
+  </div>
+
+  <div class="deck-row">
+    <span class="deck-row-num">03</span>
+    <span class="deck-row-era">BW</span>
+    <span class="deck-row-name">Blastoise / Keldeo-EX</span>
+    <span class="deck-row-cards">60 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real"  style="flex:48"></div>
+      <div class="dbr dbr-proxy" style="flex:12"></div>
+    </div>
+    <span class="deck-row-status ok">Playable</span>
+  </div>
+
+  <div class="deck-row">
+    <span class="deck-row-num">04</span>
+    <span class="deck-row-era">XY</span>
+    <span class="deck-row-name">Night March</span>
+    <span class="deck-row-cards">60 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real"    style="flex:50"></div>
+      <div class="dbr dbr-ordered" style="flex:10"></div>
+    </div>
+    <span class="deck-row-status info">Awaiting</span>
+  </div>
+
+  <div class="deck-row">
+    <span class="deck-row-num">05</span>
+    <span class="deck-row-era">SM</span>
+    <span class="deck-row-name">Zoroark-GX Control</span>
+    <span class="deck-row-cards">60 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real"  style="flex:54"></div>
+      <div class="dbr dbr-proxy" style="flex:6"></div>
+    </div>
+    <span class="deck-row-status ok">Playable</span>
+  </div>
+
+  <div class="deck-row">
+    <span class="deck-row-num">06</span>
+    <span class="deck-row-era">SwSh</span>
+    <span class="deck-row-name">Mew VMAX</span>
+    <span class="deck-row-cards">45 / 60</span>
+    <div class="deck-row-bar">
+      <div class="dbr dbr-real"    style="flex:30"></div>
+      <div class="dbr dbr-proxy"   style="flex:15"></div>
+      <div class="dbr dbr-missing" style="flex:15"></div>
+    </div>
+    <span class="deck-row-status warn">WIP — 15 miss</span>
+  </div>
+
+</div>
+
+<div class="callout">
+  <div class="callout-main">
+    <div class="callout-title">Buy list highlight</div>
+    <div class="callout-headline">
+      <span>15×</span> Ultra Ball missing<br>across 6 decks
+    </div>
+  </div>
+  <div class="callout-side">
+    <div>
+      <div class="callout-num">38</div>
+      <div class="callout-num-lbl">Unique cards<br>needed</div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <span class="footer-brand">Deck Archive</span>
+  <span class="footer-note">Pokémon TCG personal collection · read-only public view</span>
+  <a class="footer-link" href="#">View full buy list →</a>
+</footer>
+
+</body>
+</html>
