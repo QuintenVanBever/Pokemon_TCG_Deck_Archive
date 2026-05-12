@@ -99,7 +99,8 @@ export function Navigation() {
 function AdminButton() {
   const [hovered, setHovered] = useState(false)
   return (
-    <button
+    <Link
+      to="/admin"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -111,9 +112,11 @@ function AdminButton() {
         color: hovered ? 'var(--navy)' : 'var(--sky)',
         cursor: 'pointer',
         transition: 'all 0.15s',
+        textDecoration: 'none',
+        display: 'inline-block',
       }}
     >
       Admin ↗
-    </button>
+    </Link>
   )
 }

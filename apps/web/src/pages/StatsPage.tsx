@@ -1,43 +1,14 @@
-import React, { useState } from 'react'
-import { DECKS, ERA_META, STATUS_COLORS, deriveDeckStatus, type EraKey } from '../data/decks'
+import React, { useState, useEffect } from 'react'
+import { deriveDeckStatus } from '../data/decks'
+import { fetchDecks, fetchStatsOverview, fetchBuylist, type DeckSummary, type StatsOverview, type BuylistRow } from '../lib/api'
 
 type TabId = 'per-deck' | 'buy-list' | 'per-card'
-
-/* ── Mock buy-list data ────────────────────────────── */
-
-interface BuyRow {
-  id: number
-  name: string
-  era: EraKey
-  setName: string
-  supertype: string
-  missing: number
-  ordered: number
-  proxied: number
-  deckCount: number
-}
-
-const BUY_LIST: BuyRow[] = [
-  { id:1, name:'Ultra Ball',        era:'BW',   setName:'Dark Explorers',  supertype:'Item',      missing:15, ordered:4, proxied:8,  deckCount:6 },
-  { id:2, name:'Professor Juniper', era:'BW',   setName:'BW Base',         supertype:'Supporter', missing:12, ordered:0, proxied:4,  deckCount:5 },
-  { id:3, name:'N',                 era:'BW',   setName:'Noble Victories', supertype:'Supporter', missing:8,  ordered:8, proxied:0,  deckCount:4 },
-  { id:4, name:'Rare Candy',        era:'HGSS', setName:'Unleashed',       supertype:'Item',      missing:6,  ordered:0, proxied:6,  deckCount:3 },
-  { id:5, name:'Colress',           era:'BW',   setName:'Plasma Storm',    supertype:'Supporter', missing:5,  ordered:4, proxied:0,  deckCount:3 },
-  { id:6, name:'Junk Arm',          era:'HGSS', setName:'Triumphant',      supertype:'Item',      missing:4,  ordered:0, proxied:4,  deckCount:2 },
-  { id:7, name:'VS Seeker',         era:'XY',   setName:'Phantom Forces',  supertype:'Item',      missing:3,  ordered:0, proxied:3,  deckCount:2 },
-  { id:8, name:'Darkrai-EX',        era:'BW',   setName:'Dark Explorers',  supertype:'Pokémon',   missing:2,  ordered:2, proxied:0,  deckCount:1 },
-]
 
 /* ── Panel wrapper ─────────────────────────────────── */
 
 function Panel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{
-      background: '#FFFFFF',
-      border: '1px solid rgba(26,58,92,0.1)',
-      overflow: 'hidden',
-      ...style,
-    }}>
+    <div style={{ background: '#FFFFFF', border: '1px solid rgba(26,58,92,0.1)', overflow: 'hidden', ...style }}>
       {children}
     </div>
   )
@@ -45,39 +16,22 @@ function Panel({ children, style }: { children: React.ReactNode; style?: React.C
 
 /* ── Headline counters ─────────────────────────────── */
 
-function HeadlineGrid() {
-  const totals = DECKS.reduce(
-    (acc, d) => {
-      acc.real    += d.counts.real
-      acc.proxy   += d.counts.proxy
-      acc.missing += d.counts.missing
-      acc.ordered += d.counts.ordered
-      return acc
-    },
-    { real: 0, proxy: 0, missing: 0, ordered: 0 },
-  )
-  const playable = DECKS.filter(d => {
+function HeadlineGrid({ stats, decks }: { stats: StatsOverview; decks: DeckSummary[] }) {
+  const playable = decks.filter(d => {
     const s = deriveDeckStatus(d.counts)
     return s === 'all-real' || s === 'playable'
   }).length
-  const wip = DECKS.filter(d => deriveDeckStatus(d.counts) === 'wip').length
+  const wip = decks.filter(d => deriveDeckStatus(d.counts) === 'wip').length
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
-      gap: 2, background: 'rgba(26,58,92,0.08)',
-      marginBottom: '1.75rem',
-    }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, background: 'rgba(26,58,92,0.08)', marginBottom: '1.75rem' }}>
       {[
-        { val: DECKS.length, label: 'Total Decks',   sub: `${playable} playable · ${wip} WIP`,  color: 'var(--navy)' },
-        { val: totals.real,  label: 'Cards Real',    sub: 'across all decks',                     color: 'var(--real)' },
-        { val: totals.missing, label: 'Cards Missing', sub: `${BUY_LIST.length} unique cards`,   color: 'var(--missing)' },
-        { val: totals.ordered, label: 'On Order',    sub: 'cards in transit',                     color: 'var(--ordered)' },
+        { val: stats.totalDecks,   label: 'Total Decks',   sub: `${playable} playable · ${wip} WIP`,  color: 'var(--navy)'    },
+        { val: stats.totalReal,    label: 'Cards Real',    sub: 'across all decks',                    color: 'var(--real)'    },
+        { val: stats.totalMissing, label: 'Cards Missing', sub: 'need to acquire',                     color: 'var(--missing)' },
+        { val: stats.totalOrdered, label: 'On Order',      sub: 'cards in transit',                    color: 'var(--ordered)' },
       ].map(({ val, label, sub, color }) => (
-        <div key={label} style={{
-          background: '#FFFFFF', padding: '1.4rem 1.5rem',
-          display: 'flex', flexDirection: 'column', gap: '0.25rem',
-        }}>
+        <div key={label} style={{ background: '#FFFFFF', padding: '1.4rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <span style={{ fontFamily: 'var(--font-d)', fontSize: '2rem', lineHeight: 1, color }}>{val}</span>
           <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(26,58,92,0.4)' }}>{label}</span>
           <span style={{ fontSize: '0.76rem', color: 'rgba(26,58,92,0.55)', marginTop: '0.15rem' }}>{sub}</span>
@@ -89,7 +43,7 @@ function HeadlineGrid() {
 
 /* ── Per deck tab ──────────────────────────────────── */
 
-function PerDeckTab() {
+function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
   return (
     <Panel>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
@@ -107,18 +61,20 @@ function PerDeckTab() {
           </tr>
         </thead>
         <tbody>
-          {DECKS.map((deck, i) => {
-            const status = deriveDeckStatus(deck.counts)
-            const statusLabel: Record<string, string> = { 'all-real': 'All Real', playable: 'Playable', wip: 'WIP', awaiting: 'Awaiting' }
-            const statusColor: Record<string, string> = { 'all-real': 'var(--real)', playable: 'var(--real)', wip: 'var(--missing)', awaiting: 'var(--ordered)' }
+          {decks.map((deck, i) => {
+            const { counts } = deck
+            const status = deriveDeckStatus(counts)
+            const statusLabel: Record<string, string>  = { 'all-real': 'All Real', playable: 'Playable', wip: 'WIP', awaiting: 'Awaiting' }
+            const statusColor: Record<string, string>  = { 'all-real': 'var(--real)', playable: 'var(--real)', wip: 'var(--missing)', awaiting: 'var(--ordered)' }
+            const tot = counts.real + counts.proxy + counts.missing + counts.ordered
             return (
               <tr key={deck.slug} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.02)' }}>
                 <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontFamily: 'var(--font-d)', fontSize: '1rem', fontWeight: 600, color: 'var(--navy)' }}>{deck.name}</td>
-                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', color: 'rgba(26,58,92,0.55)' }}>{deck.counts.real + deck.counts.proxy + deck.counts.missing + deck.counts.ordered}</td>
-                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: 'var(--real)' }}>{deck.counts.real}</td>
-                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: deck.counts.proxy > 0 ? 'var(--proxy)' : 'rgba(26,58,92,0.25)' }}>{deck.counts.proxy}</td>
-                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: deck.counts.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.25)' }}>{deck.counts.missing}</td>
-                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: deck.counts.ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.25)' }}>{deck.counts.ordered}</td>
+                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', color: 'rgba(26,58,92,0.55)' }}>{tot}</td>
+                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: 'var(--real)' }}>{counts.real}</td>
+                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: counts.proxy   > 0 ? 'var(--proxy)'   : 'rgba(26,58,92,0.25)' }}>{counts.proxy}</td>
+                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: counts.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.25)' }}>{counts.missing}</td>
+                <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: counts.ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.25)' }}>{counts.ordered}</td>
                 <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', color: statusColor[status], fontWeight: 700, fontSize: '0.72rem' }}>{statusLabel[status]}</td>
               </tr>
             )
@@ -131,72 +87,169 @@ function PerDeckTab() {
 
 /* ── Buy list tab ──────────────────────────────────── */
 
-function BuyListTab() {
-  const [eraFilter, setEraFilter] = useState<EraKey | 'all'>('all')
-  const eras: Array<EraKey | 'all'> = ['all', 'HGSS', 'BW', 'XY', 'SM', 'SwSh', 'SV']
-  const eraLabels: Record<string, string> = { all: 'All Eras', HGSS: 'HGSS', BW: 'BW', XY: 'XY', SM: 'SM', SwSh: 'SwSh', SV: 'SV' }
+type EraChip = { slug: string; label: string; color: string }
 
-  const rows = eraFilter === 'all' ? BUY_LIST : BUY_LIST.filter(r => r.era === eraFilter)
+function BuyListTab({ eras }: { eras: EraChip[] }) {
+  const [eraFilter,  setEraFilter]  = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [rows, setRows]             = useState<BuylistRow[]>([])
+  const [loading, setLoading]       = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchBuylist({
+      era:       eraFilter  !== 'all' ? eraFilter  : undefined,
+      supertype: typeFilter !== 'all' ? typeFilter : undefined,
+    }).then(data => { setRows(data); setLoading(false) })
+  }, [eraFilter, typeFilter])
+
   const totalMissing = rows.reduce((s, r) => s + r.missing, 0)
+  const totalProxied = rows.reduce((s, r) => s + r.proxied, 0)
+  const totalOrdered = rows.reduce((s, r) => s + r.ordered, 0)
+
+  function exportCsv() {
+    const header = 'Card,Era,Type,Missing,Ordered,Proxied,In Decks\n'
+    const body   = rows
+      .map(r => `"${r.name}","${r.era ?? ''}","${r.supertype}",${r.missing},${r.ordered},${r.proxied},${r.deck_count}`)
+      .join('\n')
+    const blob = new Blob([header + body], { type: 'text/csv' })
+    const a    = document.createElement('a')
+    a.href     = URL.createObjectURL(blob)
+    a.download = `buylist${eraFilter !== 'all' ? `-${eraFilter}` : ''}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const typeChips = [
+    { key: 'all',      label: 'All Types' },
+    { key: 'Pokémon',  label: 'Pokémon'   },
+    { key: 'Trainer',  label: 'Trainer'   },
+    { key: 'Energy',   label: 'Energy'    },
+  ]
+
+  const tdBase: React.CSSProperties = {
+    padding: '0.5rem 0.8rem',
+    borderBottom: '1px solid rgba(26,58,92,0.05)',
+  }
 
   return (
     <Panel>
       {/* Toolbar */}
       <div style={{
-        padding: '0.85rem 1.2rem', borderBottom: '2px solid rgba(26,58,92,0.08)',
-        display: 'flex', gap: '0.4rem', alignItems: 'center',
-        background: 'rgba(26,58,92,0.03)',
+        padding: '0.75rem 1rem',
+        borderBottom: '2px solid rgba(26,58,92,0.08)',
+        background: 'rgba(26,58,92,0.02)',
+        display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center',
       }}>
-        {eras.map(e => (
-          <FilterChip key={e} active={eraFilter === e} color={e !== 'all' ? ERA_META[e as EraKey].color : undefined} onClick={() => setEraFilter(e)}>
-            {eraLabels[e]}
-          </FilterChip>
-        ))}
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: 'var(--missing)' }}>
-          {totalMissing} missing
-        </span>
-        <button style={chipStyle(false)}>Export CSV</button>
+        {/* Era chips */}
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Era</span>
+          <FilterChip active={eraFilter === 'all'} onClick={() => setEraFilter('all')}>All</FilterChip>
+          {eras.map(e => (
+            <FilterChip key={e.slug} active={eraFilter === e.slug} color={e.color} onClick={() => setEraFilter(e.slug)}>
+              {e.label}
+            </FilterChip>
+          ))}
+        </div>
+
+        <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
+
+        {/* Type chips */}
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Type</span>
+          {typeChips.map(t => (
+            <FilterChip key={t.key} active={typeFilter === t.key} onClick={() => setTypeFilter(t.key)}>{t.label}</FilterChip>
+          ))}
+        </div>
+
+        {/* Summary + export */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {totalMissing > 0 && (
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--missing)' }}>
+              {totalMissing} missing
+            </span>
+          )}
+          {totalProxied > 0 && (
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--proxy)' }}>
+              {totalProxied} proxied
+            </span>
+          )}
+          {totalOrdered > 0 && (
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--ordered)' }}>
+              {totalOrdered} ordered
+            </span>
+          )}
+          <button
+            onClick={exportCsv}
+            style={chipStyle(false)}
+            disabled={rows.length === 0}
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-        <thead>
-          <tr>
-            {['Card', 'Era / Set', 'Type', 'Missing ↓', 'Ordered', 'Proxied', 'In Decks'].map(h => (
-              <th key={h} style={{
-                textAlign: 'left', fontFamily: 'var(--font-b)', fontSize: '0.62rem',
-                fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
-                color: 'rgba(26,58,92,0.4)', padding: '0.55rem 0.8rem',
-                borderBottom: '1px solid rgba(26,58,92,0.08)',
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.02)' }}>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>
-                {row.name}
-              </td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)' }}>
-                <span style={{
-                  background: ERA_META[row.era].color + '22',
-                  color: ERA_META[row.era].color,
-                  fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.08em',
-                  padding: '0.18rem 0.45rem', marginRight: '0.4rem',
-                }}>
-                  {row.era}
-                </span>
-                <span style={{ color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.setName}</span>
-              </td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.supertype}</td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 900, color: 'var(--missing)', fontSize: '1rem', fontFamily: 'var(--font-d)' }}>{row.missing}</td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: row.ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.25)' }}>{row.ordered}</td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontWeight: 700, color: row.proxied > 0 ? 'var(--proxy)' : 'rgba(26,58,92,0.25)' }}>{row.proxied}</td>
-              <td style={{ padding: '0.55rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)', fontSize: '0.72rem', color: 'rgba(26,58,92,0.4)' }}>{row.deckCount} decks</td>
+      {/* Table */}
+      {loading ? (
+        <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
+          Loading…
+        </div>
+      ) : rows.length === 0 ? (
+        <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
+          No cards to acquire for this filter — looking good!
+        </div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <thead>
+            <tr>
+              {['Card', 'Era', 'Type', 'Missing ↓', 'Ordered', 'Proxied', 'In Decks'].map(h => (
+                <th key={h} style={{
+                  textAlign: 'left', fontFamily: 'var(--font-b)', fontSize: '0.6rem',
+                  fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
+                  color: 'rgba(26,58,92,0.4)', padding: '0.5rem 0.8rem',
+                  borderBottom: '1px solid rgba(26,58,92,0.08)',
+                }}>{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={`${row.name}-${i}`} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}>
+                <td style={{ ...tdBase, fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>
+                  {row.name}
+                </td>
+                <td style={tdBase}>
+                  {row.era ? (
+                    <span style={{
+                      background: (row.era_color ?? '#888') + '22',
+                      color: row.era_color ?? '#888',
+                      fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.08em',
+                      padding: '0.18rem 0.45rem',
+                    }}>
+                      {row.era}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'rgba(26,58,92,0.3)', fontSize: '0.75rem' }}>—</span>
+                  )}
+                </td>
+                <td style={{ ...tdBase, color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.supertype}</td>
+                <td style={{ ...tdBase, fontWeight: 900, color: row.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)', fontSize: '1rem', fontFamily: 'var(--font-d)' }}>
+                  {row.missing > 0 ? row.missing : '—'}
+                </td>
+                <td style={{ ...tdBase, fontWeight: 700, color: row.ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.2)' }}>
+                  {row.ordered > 0 ? row.ordered : '—'}
+                </td>
+                <td style={{ ...tdBase, fontWeight: 700, color: row.proxied > 0 ? 'var(--proxy)' : 'rgba(26,58,92,0.2)' }}>
+                  {row.proxied > 0 ? row.proxied : '—'}
+                </td>
+                <td style={{ ...tdBase, fontSize: '0.72rem', color: 'rgba(26,58,92,0.4)' }}>
+                  {row.deck_count} {row.deck_count === 1 ? 'deck' : 'decks'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Panel>
   )
 }
@@ -206,9 +259,7 @@ function BuyListTab() {
 function FilterChip({ children, active, color, onClick }: {
   children: React.ReactNode; active: boolean; color?: string; onClick: () => void
 }) {
-  return (
-    <button onClick={onClick} style={chipStyle(active, color)}>{children}</button>
-  )
+  return <button onClick={onClick} style={chipStyle(active, color)}>{children}</button>
 }
 
 function chipStyle(active: boolean, color?: string): React.CSSProperties {
@@ -224,17 +275,32 @@ function chipStyle(active: boolean, color?: string): React.CSSProperties {
 /* ── Page ──────────────────────────────────────────── */
 
 export function StatsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('buy-list')
+  const [activeTab, setActiveTab] = useState<TabId>('per-deck')
+  const [decks, setDecks]         = useState<DeckSummary[]>([])
+  const [stats, setStats]         = useState<StatsOverview | null>(null)
+  const [loading, setLoading]     = useState(true)
+
+  useEffect(() => {
+    Promise.all([fetchDecks(), fetchStatsOverview()]).then(([d, s]) => {
+      setDecks(d); setStats(s); setLoading(false)
+    })
+  }, [])
+
+  const eras: EraChip[] = decks
+    .reduce<EraChip[]>((acc, d) => {
+      if (!acc.find(e => e.slug === d.era_slug))
+        acc.push({ slug: d.era_slug, label: d.era, color: d.era_color })
+      return acc
+    }, [])
 
   const TABS: Array<{ id: TabId; label: string }> = [
-    { id: 'per-deck',  label: 'Per Deck'              },
-    { id: 'buy-list',  label: 'Aggregated Buy List'   },
-    { id: 'per-card',  label: 'Per Card'              },
+    { id: 'per-deck',  label: 'Per Deck'            },
+    { id: 'buy-list',  label: 'Aggregated Buy List'  },
+    { id: 'per-card',  label: 'Per Card'             },
   ]
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2.5rem 2rem 4rem' }}>
-      {/* Page header */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '0.75rem' }}>
           <span style={{ display: 'block', width: 28, height: 3, background: 'var(--yellow)' }} />
@@ -242,48 +308,46 @@ export function StatsPage() {
             Collection Overview
           </span>
         </div>
-        <h1 style={{
-          fontFamily: 'var(--font-d)', fontSize: 'clamp(2rem,4vw,3rem)',
-          fontWeight: 400, color: 'var(--navy)', letterSpacing: '-0.01em',
-        }}>
+        <h1 style={{ fontFamily: 'var(--font-d)', fontSize: 'clamp(2rem,4vw,3rem)', fontWeight: 400, color: 'var(--navy)', letterSpacing: '-0.01em' }}>
           Statistics &amp; Buy List
         </h1>
       </div>
 
-      <HeadlineGrid />
+      {loading || !stats ? (
+        <div style={{ textAlign: 'center', padding: '4rem 0', fontFamily: 'var(--font-d)', fontSize: '1.1rem', color: 'rgba(26,58,92,0.35)' }}>Loading…</div>
+      ) : (
+        <>
+          <HeadlineGrid stats={stats} decks={decks} />
 
-      {/* Tabs */}
-      <div style={{
-        display: 'flex', borderBottom: '3px solid rgba(26,58,92,0.12)',
-        marginBottom: '1.6rem',
-      }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              padding: '0.55rem 1.2rem', fontSize: '0.82rem', fontWeight: 700,
-              color: activeTab === tab.id ? 'var(--navy)' : 'rgba(26,58,92,0.45)',
-              cursor: 'pointer', background: 'transparent',
-              border: 'none',
-              borderBottom: `3px solid ${activeTab === tab.id ? 'var(--yellow)' : 'transparent'}`,
-              marginBottom: -3, transition: 'all 0.14s',
-              fontFamily: 'var(--font-d)', letterSpacing: '0.03em',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+          <div style={{ display: 'flex', borderBottom: '3px solid rgba(26,58,92,0.12)', marginBottom: '1.6rem' }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '0.55rem 1.2rem', fontSize: '0.82rem', fontWeight: 700,
+                  color: activeTab === tab.id ? 'var(--navy)' : 'rgba(26,58,92,0.45)',
+                  cursor: 'pointer', background: 'transparent', border: 'none',
+                  borderBottom: `3px solid ${activeTab === tab.id ? 'var(--yellow)' : 'transparent'}`,
+                  marginBottom: -3, transition: 'all 0.14s',
+                  fontFamily: 'var(--font-d)', letterSpacing: '0.03em',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      {activeTab === 'per-deck'  && <PerDeckTab />}
-      {activeTab === 'buy-list'  && <BuyListTab />}
-      {activeTab === 'per-card'  && (
-        <Panel style={{ padding: '3rem', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'var(--font-d)', fontSize: '1.3rem', color: 'rgba(26,58,92,0.5)' }}>
-            Card search coming soon — find any card and see which decks use it.
-          </p>
-        </Panel>
+          {activeTab === 'per-deck' && <PerDeckTab decks={decks} />}
+          {activeTab === 'buy-list' && <BuyListTab eras={eras} />}
+          {activeTab === 'per-card' && (
+            <Panel style={{ padding: '3rem', textAlign: 'center' }}>
+              <p style={{ fontFamily: 'var(--font-d)', fontSize: '1.3rem', color: 'rgba(26,58,92,0.5)' }}>
+                Card search coming soon — find any card and see which decks use it.
+              </p>
+            </Panel>
+          )}
+        </>
       )}
     </div>
   )

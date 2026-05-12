@@ -1,4 +1,3 @@
-import React from 'react'
 import {
   createRouter,
   createRoute,
@@ -12,6 +11,11 @@ import { DeckDetailPage } from './pages/DeckDetailPage'
 import { StatsPage } from './pages/StatsPage'
 import { EraPage } from './pages/EraPage'
 import { FormatsPage } from './pages/FormatsPage'
+import { AdminLayout } from './pages/admin/AdminLayout'
+import { AdminFormatsPage } from './pages/admin/AdminFormatsPage'
+import { AdminCardsPage } from './pages/admin/AdminCardsPage'
+import { AdminDecksPage } from './pages/admin/AdminDecksPage'
+import { AdminDeckEditPage } from './pages/admin/AdminDeckEditPage'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -58,6 +62,44 @@ const formatsRoute = createRoute({
   component: FormatsPage,
 })
 
+// ── Admin ──────────────────────────────────────────────────────────────
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  component: AdminLayout,
+})
+
+const adminIndexRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/',
+  beforeLoad: () => { throw redirect({ to: '/admin/decks' }) },
+})
+
+const adminFormatsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/formats',
+  component: AdminFormatsPage,
+})
+
+const adminCardsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/cards',
+  component: AdminCardsPage,
+})
+
+const adminDecksRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/decks',
+  component: AdminDecksPage,
+})
+
+const adminDeckEditRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/decks/$slug/edit',
+  component: AdminDeckEditPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   decksRoute,
@@ -65,6 +107,13 @@ const routeTree = rootRoute.addChildren([
   statsRoute,
   erasRoute,
   formatsRoute,
+  adminRoute.addChildren([
+    adminIndexRoute,
+    adminFormatsRoute,
+    adminCardsRoute,
+    adminDecksRoute,
+    adminDeckEditRoute,
+  ]),
 ])
 
 export const router = createRouter({ routeTree })

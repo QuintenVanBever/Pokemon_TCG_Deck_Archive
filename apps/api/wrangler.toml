@@ -5,7 +5,8 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "pokemon-tcg-deck-archive"
-database_id = "placeholder-replace-after-create"
+database_id = "2da0c4f0-7ccc-46e7-a305-674dd4a9f10b"
+migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "STORAGE"

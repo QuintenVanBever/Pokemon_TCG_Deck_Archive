@@ -1,35 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
-import { DECKS, ERA_META, STATUS_COLORS, BAR_COLORS, deriveDeckStatus, type Deck, type CardStatus } from '../data/decks'
+import { ENERGY_META, STATUS_COLORS, BAR_COLORS, deriveDeckStatus } from '../data/decks'
+import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api'
+import type { EnergyType } from '../data/decks'
 
-/* ── Era stripe colors for the left-panel deck list ─ */
 const ERA_STRIPES: Record<string, string> = {
-  hgss: '#F5C518',
-  bw:   '#888888',
-  xy:   '#3DAA6A',
-  sm:   '#D93825',
-  swsh: '#5BC0DE',
-  sv:   '#C03060',
+  hgss: '#F5C518', bw: '#888888', xy: '#3DAA6A',
+  sm: '#D93825', swsh: '#5BC0DE', sv: '#C03060',
 }
 
 const ERA_TEXT_COLORS: Record<string, string> = {
-  hgss: '#C49A00',
-  bw:   '#666666',
-  xy:   '#2E8B57',
-  sm:   '#9A2018',
-  swsh: '#3A8FAA',
-  sv:   '#8A2040',
+  hgss: '#C49A00', bw: '#666666', xy: '#2E8B57',
+  sm: '#9A2018', swsh: '#3A8FAA', sv: '#8A2040',
 }
 
 /* ── Left panel — deck list ──────────────────────────*/
 
-function DeckListItem({ deck, isActive }: { deck: Deck; isActive: boolean }) {
+function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean }) {
   const [hovered, setHovered] = useState(false)
-  const tot = deck.counts.real + deck.counts.proxy + deck.counts.missing + deck.counts.ordered
-  const status = deriveDeckStatus(deck.counts)
+  const { counts } = deck
+  const tot = counts.real + counts.proxy + counts.missing + counts.ordered
+  const status = deriveDeckStatus(counts)
 
-  let markColor = '#3EE080'
-  let mark = '✔'
+  let markColor = '#3EE080'; let mark = '✔'
   if (status === 'wip')      { markColor = '#FF6655'; mark = '!' }
   if (status === 'awaiting') { markColor = '#44BBFF'; mark = '◎' }
 
@@ -41,102 +34,57 @@ function DeckListItem({ deck, isActive }: { deck: Deck; isActive: boolean }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '9px 14px 9px 0',
-        margin: '1px 0',
+        padding: '9px 14px 9px 0', margin: '1px 0',
         cursor: 'pointer',
-        background: isActive
-          ? 'rgba(255,255,255,0.11)'
-          : hovered
-            ? 'rgba(255,255,255,0.07)'
-            : 'transparent',
-        borderLeft: `4px solid ${ERA_STRIPES[deck.eraClass] ?? '#888'}`,
-        textDecoration: 'none',
-        transition: 'background 0.15s',
+        background: isActive ? 'rgba(255,255,255,0.11)' : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
+        borderLeft: `4px solid ${ERA_STRIPES[deck.era_slug] ?? '#888'}`,
+        textDecoration: 'none', transition: 'background 0.15s',
       }}
     >
       <div style={{ flex: 1, minWidth: 0, paddingLeft: 10 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 800, color: '#FFFFFF',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          lineHeight: 1.3,
-        }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
           {deck.name}
         </div>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 600 }}>
           {tot} cards · {deck.era}
         </div>
       </div>
-      <div style={{ fontSize: 14, flexShrink: 0, marginRight: 6, color: markColor }}>
-        {mark}
-      </div>
+      <div style={{ fontSize: 14, flexShrink: 0, marginRight: 6, color: markColor }}>{mark}</div>
     </Link>
   )
 }
 
 /* ── Stat counter block ──────────────────────────────*/
 
-function StatCounter({ value, label, type }: { value: number; label: string; type: CardStatus }) {
-  const topColors: Record<CardStatus, string> = {
-    real:    '#3EE080',
-    proxy:   '#C090FF',
-    missing: '#FF4444',
-    ordered: '#44BBFF',
-  }
-  const valColors: Record<CardStatus, string> = {
-    real:    '#2E8B57',
-    proxy:   '#7B52C4',
-    missing: '#CC3333',
-    ordered: '#1E78C4',
-  }
+function StatCounter({ value, label, type }: { value: number; label: string; type: SlotStatus }) {
+  const topColors = { real: '#3EE080', proxy: '#C090FF', missing: '#FF4444', ordered: '#44BBFF' }
+  const valColors = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' }
   return (
-    <div style={{
-      flex: 1, textAlign: 'center', padding: '10px 0',
-      background: '#FFFFFF', position: 'relative',
-    }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: 4, background: topColors[type],
-      }} />
-      <span style={{
-        fontFamily: 'var(--font-d)', fontSize: 28, lineHeight: 1,
-        display: 'block', marginBottom: 2,
-        color: valColors[type],
-      }}>
-        {value}
-      </span>
-      <span style={{
-        fontSize: 9, fontWeight: 900, letterSpacing: '0.14em',
-        textTransform: 'uppercase', color: '#AAAAAA',
-      }}>
-        {label}
-      </span>
+    <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#FFFFFF', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: topColors[type] }} />
+      <span style={{ fontFamily: 'var(--font-d)', fontSize: 28, lineHeight: 1, display: 'block', marginBottom: 2, color: valColors[type] }}>{value}</span>
+      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#AAAAAA' }}>{label}</span>
     </div>
   )
 }
 
 /* ── Sleeve ──────────────────────────────────────────*/
 
-function Sleeve({ name, status }: { name: string; status: CardStatus }) {
+function Sleeve({ name, status, imageUrl }: { name: string; status: SlotStatus; imageUrl: string | null }) {
   const [hovered, setHovered] = useState(false)
 
-  const sleeveStyles: Record<CardStatus, React.CSSProperties> = {
-    real: {
-      background: '#FAFAFA',
-      border: '1.5px solid #CCDDDD',
-      boxShadow: 'inset 0 0 0 2px #F0F8FF',
-    },
-    proxy: {
-      background: '#FFFAE5',
-      border: '1.5px solid #D4B840',
-    },
-    missing: {
-      background: '#1A2030',
-      border: '1.5px dashed rgba(200,200,200,0.2)',
-    },
-    ordered: {
-      background: '#E8F6FF',
-      border: '1.5px solid #7ABCDC',
-    },
+  const overlayStyle: Record<SlotStatus, React.CSSProperties> = {
+    real:    {},
+    proxy:   { background: 'rgba(212,184,64,0.35)' },
+    missing: { background: 'rgba(10,16,32,0.72)' },
+    ordered: { background: 'rgba(30,120,196,0.25)' },
+  }
+
+  const fallbackStyles: Record<SlotStatus, React.CSSProperties> = {
+    real:    { background: '#FAFAFA', border: '1.5px solid #CCDDDD', boxShadow: 'inset 0 0 0 2px #F0F8FF' },
+    proxy:   { background: '#FFFAE5', border: '1.5px solid #D4B840' },
+    missing: { background: '#1A2030', border: '1.5px dashed rgba(200,200,200,0.2)' },
+    ordered: { background: '#E8F6FF', border: '1.5px solid #7ABCDC' },
   }
 
   return (
@@ -144,46 +92,30 @@ function Sleeve({ name, status }: { name: string; status: CardStatus }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        aspectRatio: '63/88',
-        position: 'relative',
-        cursor: 'pointer',
+        aspectRatio: '63/88', position: 'relative', cursor: 'pointer',
         transform: hovered ? 'translateY(-3px) scale(1.08)' : 'none',
-        zIndex: hovered ? 2 : 'auto',
-        transition: 'transform 0.14s',
-        ...sleeveStyles[status],
+        zIndex: hovered ? 2 : 'auto', transition: 'transform 0.14s',
+        overflow: 'hidden',
+        ...(imageUrl ? { border: 'none' } : fallbackStyles[status]),
       }}
     >
-      {/* Status indicator */}
-      {status === 'proxy' && (
-        <span style={{
-          position: 'absolute', bottom: 2, right: 3,
-          fontSize: 6, fontWeight: 900, color: 'rgba(196,152,0,0.5)',
-        }}>P</span>
+      {imageUrl ? (
+        <>
+          <img src={imageUrl} alt={name} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
+          {status !== 'real' && (
+            <div style={{ position: 'absolute', inset: 0, ...overlayStyle[status] }} />
+          )}
+        </>
+      ) : (
+        <>
+          {status === 'missing' && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 10, color: 'rgba(255,100,100,0.35)', fontWeight: 900 }}>×</span>}
+          {status === 'ordered' && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 8, color: 'rgba(30,120,196,0.45)' }}>◎</span>}
+        </>
       )}
-      {status === 'missing' && (
-        <span style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%,-50%)',
-          fontSize: 10, color: 'rgba(255,100,100,0.35)', fontWeight: 900,
-        }}>×</span>
-      )}
-      {status === 'ordered' && (
-        <span style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%,-50%)',
-          fontSize: 8, color: 'rgba(30,120,196,0.45)',
-        }}>◎</span>
-      )}
-
-      {/* Hover tooltip */}
+      {status === 'proxy'   && <span style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 6, fontWeight: 900, color: imageUrl ? 'rgba(255,220,0,0.9)' : 'rgba(196,152,0,0.5)', textShadow: imageUrl ? '0 0 3px rgba(0,0,0,0.6)' : 'none' }}>P</span>}
+      {status === 'ordered' && imageUrl && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 10, color: 'rgba(100,180,255,0.8)', textShadow: '0 0 4px rgba(0,0,0,0.5)' }}>◎</span>}
       {hovered && (
-        <div style={{
-          position: 'absolute', bottom: '110%', left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--navy)', color: '#fff',
-          fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
-          padding: '4px 8px', zIndex: 10, pointerEvents: 'none',
-        }}>
+        <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: 'var(--navy)', color: '#fff', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', padding: '4px 8px', zIndex: 10, pointerEvents: 'none' }}>
           {name}
         </div>
       )}
@@ -193,23 +125,22 @@ function Sleeve({ name, status }: { name: string; status: CardStatus }) {
 
 /* ── Sleeve grid ─────────────────────────────────────*/
 
-function SleeveGrid({ deck }: { deck: Deck }) {
-  const slots: Array<{ name: string; status: CardStatus }> = []
-  for (const card of deck.cards) {
-    for (let i = 0; i < card.count; i++) {
-      slots.push({ name: card.name, status: card.status })
-    }
+type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered'
+
+function SleeveGrid({ cards }: { cards: DeckCard[] }) {
+  const slots: Array<{ name: string; status: SlotStatus; imageUrl: string | null }> = []
+  for (const card of cards) {
+    for (let i = 0; i < card.qty_real;    i++) slots.push({ name: card.name, status: 'real',    imageUrl: card.image_url })
+    for (let i = 0; i < card.qty_proxy;   i++) slots.push({ name: card.name, status: 'proxy',   imageUrl: card.image_url })
+    for (let i = 0; i < card.qty_ordered; i++) slots.push({ name: card.name, status: 'ordered', imageUrl: card.image_url })
+    for (let i = 0; i < card.qty_missing; i++) slots.push({ name: card.name, status: 'missing', imageUrl: card.image_url })
   }
-  while (slots.length < 60) slots.push({ name: '?', status: 'real' })
+  while (slots.length < 60) slots.push({ name: '?', status: 'real', imageUrl: null })
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(10, 1fr)',
-      gap: 4,
-    }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
       {slots.slice(0, 60).map((slot, i) => (
-        <Sleeve key={i} name={slot.name} status={slot.status} />
+        <Sleeve key={i} name={slot.name} status={slot.status} imageUrl={slot.imageUrl} />
       ))}
     </div>
   )
@@ -243,112 +174,103 @@ function ActionBtn({ children, primary }: { children: React.ReactNode; primary?:
 
 export function DeckDetailPage() {
   const { slug } = useParams({ from: '/decks/$slug' })
-  const deck = DECKS.find(d => d.slug === slug) ?? DECKS[0]
 
-  // Group decks by era for the left panel
-  const eraOrder: string[] = ['HGSS', 'BW', 'XY', 'SM', 'SwSh', 'SV']
-  const byEra = eraOrder.reduce<Record<string, Deck[]>>((acc, era) => {
-    const group = DECKS.filter(d => d.era === era)
-    if (group.length > 0) acc[era] = group
+  const [deck, setDeck]     = useState<DeckDetail | null>(null)
+  const [allDecks, setAll]  = useState<DeckSummary[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([fetchDeck(slug), fetchDecks()]).then(([d, all]) => {
+      setDeck(d)
+      setAll(all)
+      setLoading(false)
+    })
+  }, [slug])
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - var(--topbar-h))', fontFamily: 'var(--font-d)', fontSize: '1.2rem', color: 'rgba(26,58,92,0.4)' }}>
+        Loading…
+      </div>
+    )
+  }
+
+  if (!deck) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - var(--topbar-h))', fontFamily: 'var(--font-d)', fontSize: '1.2rem', color: 'rgba(26,58,92,0.4)' }}>
+        Deck not found.
+      </div>
+    )
+  }
+
+  const eraOrder = ['hgss', 'bw', 'xy', 'sm', 'swsh', 'sv']
+  const byEra = eraOrder.reduce<Record<string, DeckSummary[]>>((acc, slug) => {
+    const group = allDecks.filter(d => d.era_slug === slug)
+    if (group.length > 0) acc[slug] = group
     return acc
   }, {})
 
-  const eraTextColor = ERA_TEXT_COLORS[deck.eraClass] ?? '#888'
+  const eraTextColor = ERA_TEXT_COLORS[deck.era_slug] ?? '#888'
+  const energyMeta   = ENERGY_META[deck.energy_type as EnergyType]
+  const eraLabel     = `${deck.era_name} · ${energyMeta?.label ?? deck.energy_type}`
+  const { counts }   = deck
+  const totalCards   = counts.real + counts.proxy + counts.missing + counts.ordered
+
+  const barSegs = (['real', 'proxy', 'ordered', 'missing'] as const)
+    .filter(s => counts[s] > 0)
+    .map(s => ({ key: s, flex: counts[s], color: BAR_COLORS[s] }))
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '256px 1fr',
-      height: 'calc(100vh - var(--topbar-h))',
-      overflow: 'hidden',
-    }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
+
       {/* ── LEFT PANEL ─────────────────────────────── */}
-      <div style={{
-        background: 'var(--navy)',
-        overflowY: 'auto',
-        padding: '16px 0',
-        borderRight: '3px solid var(--yellow)',
-      }}>
-        {Object.entries(byEra).map(([era, decks]) => (
-          <div key={era}>
-            <div style={{
-              padding: '6px 16px 4px',
-              fontSize: 9, fontWeight: 900, letterSpacing: '0.18em',
-              textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)',
-            }}>
-              {era} Block
+      <div style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
+        {Object.entries(byEra).map(([eraSlug, decks]) => (
+          <div key={eraSlug}>
+            <div style={{ padding: '6px 16px 4px', fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
+              {decks[0].era} Block
             </div>
             {decks.map(d => (
-              <DeckListItem key={d.slug} deck={d} isActive={d.slug === deck.slug} />
+              <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />
             ))}
           </div>
         ))}
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────── */}
-      <div style={{
-        overflowY: 'auto',
-        padding: '24px 28px 32px',
-        background: 'var(--sky-l)',
-      }}>
+      <div style={{ overflowY: 'auto', padding: '24px 28px 32px', background: 'var(--sky-l)' }}>
         {/* Deck header */}
         <div style={{ marginBottom: 20 }}>
-          {/* Breadcrumb */}
           <div style={{ marginBottom: 8 }}>
-            <Link
-              to="/decks"
-              style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-                color: 'rgba(26,58,92,0.45)', textDecoration: 'none',
-              }}
-            >
+            <Link to="/decks" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(26,58,92,0.45)', textDecoration: 'none' }}>
               ← All Decks
             </Link>
           </div>
-
-          {/* Era label */}
-          <div style={{
-            fontSize: 10, fontWeight: 900, letterSpacing: '0.18em',
-            textTransform: 'uppercase', color: eraTextColor, marginBottom: 4,
-          }}>
-            {deck.eraLabel}
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: eraTextColor, marginBottom: 4 }}>
+            {eraLabel}
           </div>
-
-          {/* Deck name */}
-          <div style={{
-            fontFamily: 'var(--font-d)', fontSize: 30,
-            color: 'var(--navy)', lineHeight: 1.05,
-            textShadow: '1px 1px 0 rgba(0,0,0,0.07)',
-            marginBottom: 18,
-          }}>
+          <div style={{ fontFamily: 'var(--font-d)', fontSize: 30, color: 'var(--navy)', lineHeight: 1.05, textShadow: '1px 1px 0 rgba(0,0,0,0.07)', marginBottom: 18 }}>
             {deck.name}
           </div>
 
           {/* Stat counters */}
           <div style={{ display: 'flex', gap: 0, marginBottom: 22, boxShadow: '0 2px 8px rgba(26,58,92,0.08)' }}>
-            {(['real', 'proxy', 'missing', 'ordered'] as CardStatus[]).map((type, i) => (
+            {(['real', 'proxy', 'missing', 'ordered'] as const).map((type, i) => (
               <React.Fragment key={type}>
                 {i > 0 && <div style={{ width: 2, background: 'var(--sky-l)' }} />}
-                <StatCounter value={deck.counts[type]} label={type.charAt(0).toUpperCase() + type.slice(1)} type={type} />
+                <StatCounter value={counts[type]} label={type.charAt(0).toUpperCase() + type.slice(1)} type={type} />
               </React.Fragment>
             ))}
           </div>
         </div>
 
         {/* Sleeve grid */}
-        <div style={{
-          background: '#FFFFFF',
-          padding: 18,
-          boxShadow: '0 4px 20px rgba(26,58,92,0.1)',
-          marginBottom: 16,
-        }}>
-          <div style={{
-            fontSize: 9, fontWeight: 900, letterSpacing: '0.18em',
-            textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 14,
-          }}>
-            All {deck.counts.real + deck.counts.proxy + deck.counts.missing + deck.counts.ordered} cards · hover for card name
+        <div style={{ background: '#FFFFFF', padding: 18, boxShadow: '0 4px 20px rgba(26,58,92,0.1)', marginBottom: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 14 }}>
+            All {totalCards} cards · hover for card name
           </div>
-          <SleeveGrid deck={deck} />
+          <SleeveGrid cards={deck.cards} />
         </div>
 
         {/* Legend */}
@@ -366,15 +288,18 @@ export function DeckDetailPage() {
           ))}
         </div>
 
+        {/* Progress bar */}
+        <div style={{ height: 6, display: 'flex', background: 'rgba(26,58,92,0.08)', marginBottom: 20 }}>
+          {barSegs.map(({ key, flex, color }) => (
+            <div key={key} style={{ flex, background: color }} />
+          ))}
+        </div>
+
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           <ActionBtn primary>Generate Proxy PDF</ActionBtn>
           <ActionBtn>Export Decklist</ActionBtn>
-          <Link
-            to="/eras/$slug"
-            params={{ slug: deck.eraClass }}
-            style={{ textDecoration: 'none' }}
-          >
+          <Link to="/eras/$slug" params={{ slug: deck.era_slug }} style={{ textDecoration: 'none' }}>
             <ActionBtn>Era Rules</ActionBtn>
           </Link>
         </div>
