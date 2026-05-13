@@ -12,6 +12,7 @@ const app = new Hono<{ Bindings: Env }>()
 app.use('*', cors({
   origin: (o) => {
     if (o === 'http://localhost:5173') return o
+    if (o === 'https://deck-archive.byquint.dev') return o
     if (o === 'https://pokemon-tcg-deck-archive.pages.dev') return o
     if (o?.endsWith('.pokemon-tcg-deck-archive.pages.dev')) return o
     return null

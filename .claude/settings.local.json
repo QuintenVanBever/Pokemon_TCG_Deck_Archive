@@ -6,7 +6,8 @@
       "Bash(npx vite *)",
       "Bash(Get-ChildItem -Path \"d:\\\\Projects\\\\Pokemon_TCG_Deck_Archive\" -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(npx wrangler *)"
+      "Bash(npx wrangler *)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
