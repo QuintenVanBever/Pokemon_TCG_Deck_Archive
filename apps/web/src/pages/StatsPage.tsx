@@ -201,7 +201,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
             onChange={e => setEraFilter(e.target.value)}
             style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', border: '1.5px solid rgba(26,58,92,0.15)', background: '#fff', fontFamily: 'var(--font-b)', fontWeight: 700, color: 'rgba(26,58,92,0.7)', cursor: 'pointer' }}
           >
-            <option value="all">All Blocks</option>
+            <option value="all">All Eras</option>
             {eras.map(e => <option key={e.slug} value={e.slug}>{e.label}</option>)}
           </select>
         </div>

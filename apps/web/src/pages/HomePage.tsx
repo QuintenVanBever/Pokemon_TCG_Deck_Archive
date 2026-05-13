@@ -323,7 +323,7 @@ export function HomePage() {
   ]
 
   const eraChips = [
-    { key: 'all', label: 'All Blocks' },
+    { key: 'all', label: 'All Eras' },
     ...usedEras.map(slug => {
       const deck = decks.find(d => d.era_slug === slug)!
       return { key: slug, label: deck.era, color: deck.era_color }

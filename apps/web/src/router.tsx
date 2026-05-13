@@ -11,6 +11,7 @@ import { DeckDetailPage } from './pages/DeckDetailPage'
 import { StatsPage } from './pages/StatsPage'
 import { EraPage } from './pages/EraPage'
 import { FormatsPage } from './pages/FormatsPage'
+import { FormatDetailPage } from './pages/FormatDetailPage'
 import { AdminLayout } from './pages/admin/AdminLayout'
 import { AdminFormatsPage } from './pages/admin/AdminFormatsPage'
 import { AdminCardsPage } from './pages/admin/AdminCardsPage'
@@ -61,6 +62,12 @@ const formatsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/formats',
   component: FormatsPage,
+})
+
+const formatDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/formats/$slug',
+  component: FormatDetailPage,
 })
 
 // ── Admin ──────────────────────────────────────────────────────────────
@@ -114,6 +121,7 @@ const routeTree = rootRoute.addChildren([
   statsRoute,
   erasRoute,
   formatsRoute,
+  formatDetailRoute,
   adminRoute.addChildren([
     adminIndexRoute,
     adminFormatsRoute,

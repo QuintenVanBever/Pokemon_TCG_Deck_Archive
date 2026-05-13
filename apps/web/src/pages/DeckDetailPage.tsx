@@ -375,7 +375,7 @@ export function DeckDetailPage() {
                   fontFamily: 'var(--font-b)',
                 }}
               >
-                <span>{decks[0].era} Block</span>
+                <span>{decks[0].era_name}</span>
                 <span style={{ fontSize: 8 }}>{isExpanded ? '▲' : '▼'}</span>
               </button>
               {isExpanded && decks.map(d => (

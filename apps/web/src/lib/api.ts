@@ -183,9 +183,35 @@ export async function fetchAdminCards(params?: { name?: string; supertype?: stri
   return json.data
 }
 
+export interface PtcgSet {
+  id: string
+  name: string
+  series: string
+  releaseDate: string
+  regulationMark: string | null
+}
+
+export interface FormatDetail extends Format {
+  era_dark:        string | null
+  era_ptcg_series: string | null
+}
+
 export async function fetchFormats(): Promise<Format[]> {
   const res  = await fetch(`${BASE}/api/formats`)
   const json = await res.json() as { data: Format[] }
+  return json.data
+}
+
+export async function fetchFormat(slug: string): Promise<FormatDetail | null> {
+  const res  = await fetch(`${BASE}/api/formats/${slug}`)
+  if (res.status === 404) return null
+  const json = await res.json() as { data: FormatDetail }
+  return json.data
+}
+
+export async function fetchPtcgSets(): Promise<PtcgSet[]> {
+  const res  = await fetch(`${BASE}/api/admin/pokemontcg/sets`)
+  const json = await res.json() as { data: PtcgSet[] }
   return json.data
 }
 

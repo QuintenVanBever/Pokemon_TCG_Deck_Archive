@@ -52,28 +52,15 @@ app.get('/api/formats', async c => {
 
 app.get('/api/formats/:slug', async c => {
   const { slug } = c.req.param()
-  const [fmt, blocks] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT * FROM formats WHERE slug = ?').bind(slug),
-    c.env.DB.prepare(`
-      SELECT eb.*, json_group_array(json_object(
-        'id', e.id, 'slug', e.slug, 'name', e.name, 'code', e.code, 'sort_order', e.sort_order
-      )) AS eras
-      FROM era_blocks eb
-      LEFT JOIN eras e ON e.era_block_id = eb.id
-      GROUP BY eb.id ORDER BY eb.sort_order
-    `),
-  ])
-  const format = fmt.results[0]
+  const format = await c.env.DB.prepare(`
+    SELECT f.*, eb.slug AS era_slug, eb.name AS era_name, eb.color AS era_color,
+           eb.dark AS era_dark, eb.ptcg_series AS era_ptcg_series
+    FROM formats f
+    LEFT JOIN era_blocks eb ON eb.id = f.era_id
+    WHERE f.slug = ?
+  `).bind(slug).first()
   if (!format) return c.json({ data: null }, 404)
-  return c.json({
-    data: {
-      ...format,
-      era_blocks: blocks.results.map((b: any) => ({
-        ...b,
-        eras: JSON.parse(b.eras ?? '[]').filter((e: any) => e.id !== null),
-      })),
-    },
-  })
+  return c.json({ data: format })
 })
 
 // era-blocks: kept for backwards-compat (admin pages use this)

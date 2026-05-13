@@ -8,7 +8,9 @@
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(npx wrangler *)",
       "Bash(python3 -c ' *)",
-      "Bash(node apps/web/node_modules/.bin/tsc --project apps/web/tsconfig.json --noEmit)"
+      "Bash(node apps/web/node_modules/.bin/tsc --project apps/web/tsconfig.json --noEmit)",
+      "Bash(curl -s \"https://pokemon-tcg-deck-archive-api.quint-vanbever.workers.dev/api/eras\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\);const j=JSON.parse\\(d\\);console.log\\(j.data.map\\(e=>e.slug+' -> '+e.ptcg_series\\).join\\('\\\\n'\\)\\)\")"
     ]
   }
 }
