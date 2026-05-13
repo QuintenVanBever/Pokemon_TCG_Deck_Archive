@@ -90,18 +90,20 @@ function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
 type EraChip = { slug: string; label: string; color: string }
 
 function BuyListTab({ eras }: { eras: EraChip[] }) {
-  const [eraFilter,  setEraFilter]  = useState('all')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [rows, setRows]             = useState<BuylistRow[]>([])
-  const [loading, setLoading]       = useState(true)
+  const [eraFilter,     setEraFilter]     = useState('all')
+  const [typeFilter,    setTypeFilter]    = useState('all')
+  const [includeCustom, setIncludeCustom] = useState(false)
+  const [rows, setRows]                   = useState<BuylistRow[]>([])
+  const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
     setLoading(true)
     fetchBuylist({
-      era:       eraFilter  !== 'all' ? eraFilter  : undefined,
-      supertype: typeFilter !== 'all' ? typeFilter : undefined,
+      era:            eraFilter  !== 'all' ? eraFilter  : undefined,
+      supertype:      typeFilter !== 'all' ? typeFilter : undefined,
+      include_custom: includeCustom || undefined,
     }).then(data => { setRows(data); setLoading(false) })
-  }, [eraFilter, typeFilter])
+  }, [eraFilter, typeFilter, includeCustom])
 
   const totalMissing = rows.reduce((s, r) => s + r.missing, 0)
   const totalProxied = rows.reduce((s, r) => s + r.proxied, 0)
@@ -141,9 +143,9 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
         background: 'rgba(26,58,92,0.02)',
         display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center',
       }}>
-        {/* Era chips */}
+        {/* Block chips */}
         <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Era</span>
+          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Block</span>
           <FilterChip active={eraFilter === 'all'} onClick={() => setEraFilter('all')}>All</FilterChip>
           {eras.map(e => (
             <FilterChip key={e.slug} active={eraFilter === e.slug} color={e.color} onClick={() => setEraFilter(e.slug)}>
@@ -161,6 +163,11 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
             <FilterChip key={t.key} active={typeFilter === t.key} onClick={() => setTypeFilter(t.key)}>{t.label}</FilterChip>
           ))}
         </div>
+
+        {/* Custom toggle */}
+        <FilterChip active={includeCustom} onClick={() => setIncludeCustom(v => !v)}>
+          Include custom
+        </FilterChip>
 
         {/* Summary + export */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>

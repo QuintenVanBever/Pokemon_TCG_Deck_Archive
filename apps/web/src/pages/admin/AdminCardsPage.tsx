@@ -26,6 +26,8 @@ const emptyForm = (c?: AdminCard): CardForm => ({
   is_custom:    c?.is_custom?.toString() ?? '1',
 })
 
+type DeleteModal = { cardId: number; cardName: string; decks: { id: number; name: string; slug: string }[] } | null
+
 export function AdminCardsPage() {
   const [cards,   setCards]   = useState<AdminCard[]>([])
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
@@ -33,6 +35,8 @@ export function AdminCardsPage() {
   const [form,    setForm]    = useState<CardForm | null>(null)
   const [editId,  setEditId]  = useState<number | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<DeleteModal>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Import state
   const [importQ,      setImportQ]      = useState('')
@@ -48,6 +52,7 @@ export function AdminCardsPage() {
 
   const saveCard = async () => {
     if (!form) return
+    if (!form.name.trim()) { alert('Card name is required'); return }
     const body: Record<string, any> = {
       name:          form.name,
       display_name:  form.display_name  || null,
@@ -70,9 +75,18 @@ export function AdminCardsPage() {
     setForm(null); setEditId(null); load()
   }
 
-  const deleteCard = async (id: number) => {
-    if (!confirm('Delete this card?')) return
-    await fetch(`${BASE}/api/admin/cards/${id}`, { method: 'DELETE' })
+  const openDeleteModal = async (card: AdminCard) => {
+    setDeleteLoading(true)
+    const res  = await fetch(`${BASE}/api/admin/cards/${card.id}/decks`)
+    const json = await res.json() as { data: { id: number; name: string; slug: string }[] }
+    setDeleteModal({ cardId: card.id, cardName: card.display_name ?? card.name, decks: json.data })
+    setDeleteLoading(false)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return
+    await fetch(`${BASE}/api/admin/cards/${deleteModal.cardId}`, { method: 'DELETE' })
+    setDeleteModal(null)
     load()
   }
 
@@ -102,6 +116,35 @@ export function AdminCardsPage() {
   const imgSrc = (c: AdminCard) => c.image_ext_url || (c.image_r2_key ? `${BASE}/api/images/${c.image_r2_key}` : null)
 
   return (
+    <>
+    {deleteModal && (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}
+        onClick={e => { if (e.target === e.currentTarget) setDeleteModal(null) }}>
+        <div style={{ background: '#fff', width: 480, maxWidth: '90vw', padding: 28, boxShadow: '0 8px 32px rgba(0,0,0,0.22)' }}>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#CC3333', marginBottom: 12 }}>Delete "{deleteModal.cardName}"?</div>
+          {deleteModal.decks.length > 0 ? (
+            <>
+              <div style={{ fontSize: 13, color: '#555', marginBottom: 10 }}>
+                This card is used in <strong>{deleteModal.decks.length}</strong> deck{deleteModal.decks.length !== 1 ? 's' : ''}. Deleting it will also remove it from those decks:
+              </div>
+              <ul style={{ margin: '0 0 16px', paddingLeft: 18, fontSize: 13, color: '#333' }}>
+                {deleteModal.decks.map(d => <li key={d.id}>{d.name}</li>)}
+              </ul>
+            </>
+          ) : (
+            <div style={{ fontSize: 13, color: '#555', marginBottom: 16 }}>
+              This card is not in any deck. It will be permanently deleted.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button style={S.btnS} onClick={() => setDeleteModal(null)}>Cancel</button>
+            <button style={S.btnD} onClick={confirmDelete}>
+              {deleteModal.decks.length > 0 ? 'Delete card & remove from decks' : 'Delete card'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div style={S.page}>
       <h1 style={S.heading}>Card Catalog</h1>
 
@@ -119,7 +162,7 @@ export function AdminCardsPage() {
           </select>
         </div>
         <div style={S.field}>
-          <label style={S.label}>Era</label>
+          <label style={S.label}>Block</label>
           <select style={S.select} value={filters.era} onChange={e => setFilters(f => ({ ...f, era: e.target.value }))}>
             <option value="">All</option>
             {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
@@ -230,7 +273,7 @@ export function AdminCardsPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr 80px', gap: 10, marginBottom: 12 }}>
             <div style={S.field}>
-              <label style={S.label}>Era block (grouping)</label>
+              <label style={S.label}>Block</label>
               <select style={S.select} value={form.era_block_id} onChange={e => setForm(x => ({ ...x!, era_block_id: e.target.value }))}>
                 <option value="">None</option>
                 {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -293,7 +336,7 @@ export function AdminCardsPage() {
                 <td style={S.td}>{c.is_custom ? '✓' : ''}</td>
                 <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
                   <button style={{ ...S.btnS, marginRight: 4 }} onClick={() => { setForm(emptyForm(c)); setEditId(c.id) }}>Edit</button>
-                  <button style={S.btnD} onClick={() => deleteCard(c.id)}>Del</button>
+                  <button style={S.btnD} onClick={() => openDeleteModal(c)} disabled={deleteLoading}>Del</button>
                 </td>
               </tr>
             ))}
@@ -304,5 +347,6 @@ export function AdminCardsPage() {
         </table>
       </div>
     </div>
+    </>
   )
 }

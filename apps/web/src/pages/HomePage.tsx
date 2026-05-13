@@ -312,19 +312,17 @@ export function HomePage() {
     fetchDecks().then(d => { setDecks(d); setLoading(false) })
   }, [])
 
-  const usedEnergies = [...new Set(decks.map(d => d.energy_type))]
-  const usedEras     = [...new Set(decks.map(d => d.era_slug))]
+  const usedEras = [...new Set(decks.map(d => d.era_slug))]
 
   const energyChips = [
     { key: 'all', label: 'All Types' },
-    ...usedEnergies.map(et => {
-      const meta = ENERGY_META[et as EnergyType]
-      return { key: et, label: meta?.label ?? et, color: meta?.color }
-    }),
+    ...(Object.entries(ENERGY_META) as [EnergyType, typeof ENERGY_META[EnergyType]][]).map(([et, meta]) => ({
+      key: et, label: meta.label, color: meta.color,
+    })),
   ]
 
   const eraChips = [
-    { key: 'all', label: 'All Eras' },
+    { key: 'all', label: 'All Blocks' },
     ...usedEras.map(slug => {
       const deck = decks.find(d => d.era_slug === slug)!
       return { key: slug, label: deck.era, color: deck.era_color }
@@ -339,8 +337,8 @@ export function HomePage() {
 
   return (
     <>
-      <FilterStrip label="Energy Type" chips={energyChips} active={energyFilter} onSelect={setEnergy} />
-      <FilterStrip label="Era"         chips={eraChips}    active={eraFilter}    onSelect={setEra} />
+      <FilterStrip label="Type"  chips={energyChips} active={energyFilter} onSelect={setEnergy} />
+      <FilterStrip label="Block" chips={eraChips}    active={eraFilter}    onSelect={setEra} />
 
       <div style={{ maxWidth: 1600, margin: '0 auto', padding: '2rem 2rem 6rem' }}>
         <div style={{
@@ -355,7 +353,7 @@ export function HomePage() {
             {loading ? '…' : `${filtered.length} deck${filtered.length !== 1 ? 's' : ''}`}
           </span>
           <Link to="/stats" style={{ marginLeft: 'auto', fontFamily: 'var(--font-d)', fontSize: '0.76rem', color: 'var(--navy)', opacity: 0.55 }}>
-            Buy list →
+            Stats →
           </Link>
         </div>
 

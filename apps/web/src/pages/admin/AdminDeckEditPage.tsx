@@ -32,14 +32,16 @@ export function AdminDeckEditPage() {
   const [metaSaved, setMetaSaved] = useState(false)
 
   // Card search state
-  const [query,   setQuery]   = useState('')
-  const [results, setResults] = useState<AdminCard[]>([])
+  const [query,       setQuery]       = useState('')
+  const [results,     setResults]     = useState<AdminCard[]>([])
+  const [searchBlock, setSearchBlock] = useState('')
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Per-row editing state
   const [qtys, setQtys] = useState<Record<number, { qty_real: number; qty_proxy: number; qty_missing: number; qty_ordered: number }>>({})
   const [fanSlots, setFanSlots] = useState<Record<number, number | null>>({})
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
 
   const load = async () => {
     const d = await fetchDeck(slug)
@@ -70,20 +72,26 @@ export function AdminDeckEditPage() {
     await load()
   }
 
-  const searchCards = (q: string) => {
+  const searchCards = (q: string, block?: string) => {
+    const blockVal = block ?? searchBlock
     setQuery(q)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       if (!q.trim()) { setResults([]); return }
-      const r = await fetchAdminCards({ name: q, format_id: meta.format_id || undefined })
+      const r = await fetchAdminCards({ name: q, format_id: meta.format_id || undefined, era: blockVal || undefined })
       setResults(r.slice(0, 12))
     }, 300)
   }
 
   const addCard = async (card: AdminCard) => {
     if (!deck) return
-    if (deck.cards.find(c => c.name === card.name)) return
+    if (deck.cards.find(c => c.name === card.name)) {
+      setDuplicateWarning(`"${card.display_name ?? card.name}" is already in this deck`)
+      setTimeout(() => setDuplicateWarning(null), 3000)
+      return
+    }
     setSaveError(null)
+    setDuplicateWarning(null)
     const res = await fetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -153,7 +161,7 @@ export function AdminDeckEditPage() {
             <input style={S.input} value={meta.slug} onChange={e => setMeta(m => ({ ...m, slug: e.target.value }))} />
           </div>
           <div style={S.field}>
-            <label style={S.label}>Energy type</label>
+            <label style={S.label}>Type</label>
             <select style={S.select} value={meta.energy_type} onChange={e => setMeta(m => ({ ...m, energy_type: e.target.value }))}>
               {ENERGY_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
@@ -183,26 +191,40 @@ export function AdminDeckEditPage() {
       {/* Card search */}
       <div style={S.card}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 10 }}>Add card</div>
-        <div style={{ position: 'relative', maxWidth: 340 }}>
-          <input
-            style={S.input}
-            value={query}
-            onChange={e => searchCards(e.target.value)}
-            placeholder="Search card name…"
-          />
-          {results.length > 0 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1.5px solid #D0D5DD', borderTop: 'none', zIndex: 10, maxHeight: 280, overflowY: 'auto' }}>
-              {results.map(r => (
-                <div key={r.id} onClick={() => addCard(r)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #F0F2F5' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#F5F7FA')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                  {r.image_ext_url && <img src={r.image_ext_url} alt="" style={{ height: 28 }} />}
-                  <span style={{ fontWeight: 700 }}>{r.name}</span>
-                  <span style={{ color: '#888', fontSize: 11 }}>{r.supertype} · {r.era_name}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        {duplicateWarning && (
+          <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', color: '#92400E', fontSize: 12, padding: '6px 10px', marginBottom: 8 }}>
+            {duplicateWarning}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
+            <input
+              style={S.input}
+              value={query}
+              onChange={e => searchCards(e.target.value)}
+              placeholder="Search card name…"
+            />
+            {results.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1.5px solid #D0D5DD', borderTop: 'none', zIndex: 10, maxHeight: 280, overflowY: 'auto' }}>
+                {results.map(r => (
+                  <div key={r.id} onClick={() => addCard(r)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #F0F2F5' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#F5F7FA')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                    {r.image_ext_url && <img src={r.image_ext_url} alt="" style={{ height: 28 }} />}
+                    <span style={{ fontWeight: 700 }}>{r.name}</span>
+                    <span style={{ color: '#888', fontSize: 11 }}>{r.supertype} · {r.era_name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={S.field}>
+            <label style={S.label}>Block</label>
+            <select style={S.select} value={searchBlock} onChange={e => { setSearchBlock(e.target.value); searchCards(query, e.target.value) }}>
+              <option value="">All blocks</option>
+              {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 

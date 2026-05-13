@@ -343,7 +343,8 @@ app.get('/api/admin/pokemontcg/search', async c => {
   const q   = c.req.query('q')   ?? ''
   const set = c.req.query('set') ?? ''
   if (!q.trim()) return c.json({ data: [] })
-  const url = `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(q)}${set ? ` set.id:${set}` : ''}&pageSize=20&select=id,name,images,set,supertype,types`
+  const nameQ = `name:"${q.trim().replace(/"/g, '')}*"`
+  const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(nameQ)}${set ? `+${encodeURIComponent(`set.id:${set}`)}` : ''}&pageSize=20&select=id,name,images,set,supertype,types`
   try {
     const res  = await fetch(url, { headers: { 'X-Api-Key': c.env.POKEMONTCG_API_KEY ?? '' } })
     const json = await res.json<any>()
@@ -558,8 +559,23 @@ app.patch('/api/admin/cards/:id', async c => {
   return c.json({ success: true })
 })
 
+app.get('/api/admin/cards/:id/decks', async c => {
+  const id = Number(c.req.param('id'))
+  const { results } = await c.env.DB.prepare(`
+    SELECT DISTINCT d.id, d.name, d.slug
+    FROM deck_cards dc JOIN decks d ON d.id = dc.deck_id
+    WHERE dc.card_id = ?
+    ORDER BY d.name
+  `).bind(id).all()
+  return c.json({ data: results })
+})
+
 app.delete('/api/admin/cards/:id', async c => {
-  await c.env.DB.prepare('DELETE FROM cards WHERE id = ?').bind(Number(c.req.param('id'))).run()
+  const id = Number(c.req.param('id'))
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM deck_cards WHERE card_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM cards WHERE id = ?').bind(id),
+  ])
   return c.json({ success: true })
 })
 
@@ -613,6 +629,12 @@ app.post('/api/admin/decks/:id/cards', async c => {
   const body   = await c.req.json<{ card_id: number; qty_real: number; qty_proxy: number; qty_missing: number; qty_ordered: number; fan_slot?: number | null }>()
   const intended = body.qty_real + body.qty_proxy + body.qty_missing + body.qty_ordered
 
+  // Per-card max 4 guardrail (Energy cards exempt)
+  const cardRow = await c.env.DB.prepare('SELECT supertype FROM cards WHERE id = ?').bind(body.card_id).first() as any
+  if (cardRow?.supertype !== 'Energy' && intended > 4) {
+    return c.json({ success: false, error: `Cannot add more than 4 copies of a single card (attempted: ${intended})` }, 422)
+  }
+
   // Size guardrail: check current total (excluding this card if it already exists)
   const [deckRow, existingRow] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT intended_size FROM decks WHERE id = ?').bind(deckId),
@@ -655,6 +677,14 @@ app.patch('/api/admin/decks/:id/cards/:deckCardId', async c => {
     const qty_missing = body.qty_missing ?? 0
     const qty_ordered = body.qty_ordered ?? 0
     const intended    = qty_real + qty_proxy + qty_missing + qty_ordered
+
+    // Per-card max 4 guardrail (Energy cards exempt)
+    const cardTypeRow = await c.env.DB.prepare(
+      'SELECT c.supertype FROM deck_cards dc JOIN cards c ON c.id = dc.card_id WHERE dc.id = ?'
+    ).bind(deckCardId).first() as any
+    if (cardTypeRow?.supertype !== 'Energy' && intended > 4) {
+      return c.json({ success: false, error: `Cannot have more than 4 copies of a single card (attempted: ${intended})` }, 422)
+    }
 
     // Size guardrail
     const [deckRow, totalRow, selfRow] = await c.env.DB.batch([

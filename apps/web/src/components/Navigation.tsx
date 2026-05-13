@@ -3,7 +3,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 
 const NAV_LINKS = [
   { to: '/decks',   label: 'Decks'    },
-  { to: '/stats',   label: 'Buy List' },
+  { to: '/stats',   label: 'Stats'    },
   { to: '/formats', label: 'Formats'  },
 ]
 

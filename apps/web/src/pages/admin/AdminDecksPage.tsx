@@ -16,6 +16,7 @@ export function AdminDecksPage() {
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
   const [formats, setFormats] = useState<{ id: number; name: string }[]>([])
   const [form,    setForm]    = useState<ReturnType<typeof emptyForm> | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const load = () => fetchDecks().then(setDecks)
 
@@ -27,7 +28,8 @@ export function AdminDecksPage() {
 
   const createDeck = async () => {
     if (!form) return
-    await fetch(`${BASE}/api/admin/decks`, {
+    setCreateError(null)
+    const res = await fetch(`${BASE}/api/admin/decks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -40,6 +42,11 @@ export function AdminDecksPage() {
         primer_md:    form.primer_md || undefined,
       }),
     })
+    if (!res.ok) {
+      const json = await res.json() as { error?: string }
+      setCreateError(json.error ?? 'Failed to create deck')
+      return
+    }
     setForm(null); load()
   }
 
@@ -70,14 +77,14 @@ export function AdminDecksPage() {
                 <input style={S.input} value={form.slug} onChange={e => setForm(f => ({ ...f!, slug: e.target.value }))} />
               </div>
               <div style={S.field}>
-                <label style={S.label}>Era Block</label>
+                <label style={S.label}>Block</label>
                 <select style={S.select} value={form.era_block_id} onChange={e => setForm(f => ({ ...f!, era_block_id: e.target.value }))}>
                   <option value="">Select…</option>
                   {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               <div style={S.field}>
-                <label style={S.label}>Energy Type</label>
+                <label style={S.label}>Type</label>
                 <select style={S.select} value={form.energy_type} onChange={e => setForm(f => ({ ...f!, energy_type: e.target.value }))}>
                   {ENERGY_TYPES.map(t => <option key={t}>{t}</option>)}
                 </select>
@@ -87,9 +94,14 @@ export function AdminDecksPage() {
                 <input style={S.input} type="number" value={form.intended_size} onChange={e => setForm(f => ({ ...f!, intended_size: e.target.value }))} />
               </div>
             </div>
+            {createError && (
+              <div style={{ background: '#FFF5F5', border: '1px solid #FECACA', color: '#CC3333', fontSize: 12, padding: '6px 10px', marginBottom: 8 }}>
+                {createError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <button style={S.btnP} onClick={createDeck} disabled={!form.name || !form.era_block_id}>Create Deck</button>
-              <button style={S.btnS} onClick={() => setForm(null)}>Cancel</button>
+              <button style={S.btnS} onClick={() => { setForm(null); setCreateError(null) }}>Cancel</button>
             </div>
           </>
         ) : (
@@ -101,7 +113,7 @@ export function AdminDecksPage() {
       <div style={S.card}>
         <table style={S.table}>
           <thead><tr>
-            {['Name', 'Era', 'Energy', 'Format', 'Real', 'Proxy', 'Missing', 'Total', ''].map(h => (
+            {['Name', 'Block', 'Type', 'Format', 'Real', 'Proxy', 'Missing', 'Ordered', 'Total', ''].map(h => (
               <th key={h} style={S.th}>{h}</th>
             ))}
           </tr></thead>
@@ -117,6 +129,7 @@ export function AdminDecksPage() {
                 <td style={{ ...S.td, color: '#2E8B57', fontWeight: 700 }}>{d.counts.real}</td>
                 <td style={{ ...S.td, color: '#7B52C4' }}>{d.counts.proxy || '—'}</td>
                 <td style={{ ...S.td, color: d.counts.missing ? '#CC3333' : '#aaa' }}>{d.counts.missing || '—'}</td>
+                <td style={{ ...S.td, color: d.counts.ordered ? '#1E78C4' : '#aaa' }}>{d.counts.ordered || '—'}</td>
                 <td style={S.td}>{totals(d)}</td>
                 <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
                   <Link to="/admin/decks/$slug/edit" params={{ slug: d.slug }} style={{ textDecoration: 'none' }}>

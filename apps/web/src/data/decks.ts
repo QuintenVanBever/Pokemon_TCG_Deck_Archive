@@ -36,7 +36,7 @@ export const ENERGY_META: Record<EnergyType, { color: string; dark: string; art:
   lightning: { color: '#B88A00', dark: '#5A4200', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #FFE066 0%, #C09010 55%, #6A5000 100%)', abbr: 'LIGHTN',  label: 'Lightning' },
   psychic:   { color: '#8828A0', dark: '#401058', art: 'radial-gradient(ellipse 60% 70% at 50% 50%, #DDA8EE 0%, #9030A0 50%, #481858 100%)', abbr: 'PSYCHIC', label: 'Psychic'   },
   fighting:  { color: '#A02818', dark: '#501008', art: 'radial-gradient(ellipse 65% 75% at 40% 60%, #D07060 0%, #A82818 50%, #581008 100%)', abbr: 'FIGHT',   label: 'Fighting'  },
-  darkness:  { color: '#382068', dark: '#140830', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #8868C8 0%, #3A2068 50%, #160830 100%)', abbr: 'DARK',    label: 'Darkness'  },
+  darkness:  { color: '#1A0A3A', dark: '#080210', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #6040A0 0%, #200850 50%, #080210 100%)', abbr: 'DARK',    label: 'Darkness'  },
   metal:     { color: '#556080', dark: '#243040', art: 'radial-gradient(ellipse 60% 70% at 50% 40%, #C8D8E8 0%, #607090 55%, #283040 100%)', abbr: 'METAL',   label: 'Metal'     },
   dragon:    { color: '#2A4090', dark: '#0C1848', art: 'linear-gradient(150deg, #2A4090 0%, #5830A8 50%, #2A4090 100%)',                      abbr: 'DRAGON',  label: 'Dragon'    },
   colorless: { color: '#6A6050', dark: '#302C28', art: 'radial-gradient(ellipse 60% 70% at 50% 50%, #C8C0B0 0%, #706858 55%, #342E28 100%)', abbr: 'CLR',     label: 'Colorless' },
