@@ -12,7 +12,7 @@ function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean
   const [hovered, setHovered] = useState(false)
   const { counts } = deck
   const tot = counts.real + counts.proxy + counts.missing + counts.ordered
-  const status = deriveDeckStatus(counts)
+  const status = deriveDeckStatus(counts, deck.intended_size)
 
   let markColor = '#3EE080'; let mark = '✔'
   if (status === 'wip')      { markColor = '#FF6655'; mark = '!' }
@@ -116,24 +116,24 @@ function Sleeve({ name, pokemontcgId, status, imageUrl, onClick }: {
       {/* Proxy: diagonal-stripe strip across the middle + label */}
       {status === 'proxy' && (
         <div style={{
-          position: 'absolute', top: '28%', left: 0, right: 0, height: '42%',
-          background: 'repeating-linear-gradient(-45deg, rgba(255,204,0,0.38) 0px, rgba(255,204,0,0.38) 5px, rgba(0,0,0,0.38) 5px, rgba(0,0,0,0.38) 10px)',
+          position: 'absolute', top: '34%', left: 0, right: 0, height: '30%',
+          background: 'repeating-linear-gradient(-45deg, rgba(255,120,0,0.5) 0px, rgba(255,120,0,0.5) 5px, rgba(0,0,0,0.45) 5px, rgba(0,0,0,0.45) 10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{
-            background: 'rgba(0,0,0,0.72)', color: '#FFD700',
-            fontSize: 6, fontWeight: 900, letterSpacing: '0.16em',
+            background: 'rgba(0,0,0,0.75)', color: '#FF8C00',
+            fontSize: 8, fontWeight: 900, letterSpacing: '0.16em',
             padding: '2px 5px',
           }}>PROXY</div>
         </div>
       )}
 
-      {/* Missing: grayscale filter on img (above) + banner higher up */}
+      {/* Missing: grayscale filter on img (above) + banner */}
       {status === 'missing' && (
         <div style={{
           position: 'absolute', bottom: '20%', left: 0, right: 0,
           background: 'rgba(0,0,0,0.78)', color: '#FF6666',
-          fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
+          fontSize: 8, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
         }}>MISSING</div>
       )}
 
@@ -340,10 +340,11 @@ export function DeckDetailPage() {
   const eraLabel     = `${deck.era_name} · ${energyMeta?.label ?? deck.energy_type}`
   const { counts }   = deck
   const totalCards   = counts.real + counts.proxy + counts.missing + counts.ordered
+  const intendedSize = deck.intended_size ?? 60
 
   const barSegs = (['real', 'proxy', 'ordered', 'missing'] as const)
     .filter(s => counts[s] > 0)
-    .map(s => ({ key: s, flex: counts[s], color: BAR_COLORS[s] }))
+    .map(s => ({ key: s, pct: (counts[s] / intendedSize) * 100, color: BAR_COLORS[s] }))
 
   return (
     <div className="deck-detail-layout" style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
@@ -366,7 +367,7 @@ export function DeckDetailPage() {
                   fontFamily: 'var(--font-b)',
                 }}
               >
-                <span>{fmtDecks[0].format_name}</span>
+                <span>{fmtDecks[0].format_name ?? fmtDecks[0].era_name}</span>
                 <span style={{ fontSize: 8 }}>{isExpanded ? '▲' : '▼'}</span>
               </button>
               {isExpanded && fmtDecks.map(d => (
@@ -376,7 +377,6 @@ export function DeckDetailPage() {
           )
         })}
       </div>
-
       {/* ── RIGHT PANEL ────────────────────────────── */}
       <div className="deck-detail-main" style={{ overflowY: 'auto', padding: '24px 28px 32px', background: 'var(--sky-l)' }}>
         {/* Deck header */}
@@ -392,9 +392,9 @@ export function DeckDetailPage() {
           <div style={{ fontFamily: 'var(--font-d)', fontSize: 30, color: 'var(--navy)', lineHeight: 1.05, textShadow: '1px 1px 0 rgba(0,0,0,0.07)', marginBottom: 6 }}>
             {deck.name}
           </div>
-          {deck.format_name && (
+          {deck.format && (
             <div style={{ fontSize: 11, color: 'rgba(26,58,92,0.45)', fontWeight: 700, marginBottom: 18, letterSpacing: '0.04em' }}>
-              {deck.format_name}
+              {deck.format}
             </div>
           )}
 
@@ -434,8 +434,8 @@ export function DeckDetailPage() {
 
         {/* Progress bar */}
         <div style={{ height: 6, display: 'flex', background: 'rgba(26,58,92,0.08)', marginBottom: 20 }}>
-          {barSegs.map(({ key, flex, color }) => (
-            <div key={key} style={{ flex, background: color }} />
+          {barSegs.map(({ key, pct, color }) => (
+            <div key={key} style={{ width: `${pct}%`, background: color, flexShrink: 0 }} />
           ))}
         </div>
 

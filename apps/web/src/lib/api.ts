@@ -1,4 +1,6 @@
 export const BASE = import.meta.env.VITE_API_URL ?? ''
+import { adminFetch } from './adminAuth'
+export { adminFetch }
 
 export interface FanCard {
   fan_slot: number
@@ -16,8 +18,10 @@ export interface DeckSummary {
   era_name: string  // 'HGSS Block', …
   era_color: string
   era_dark: string
-  format:      string  // slug, e.g. 'hgss-block-modified'
-  format_name: string  // display name, e.g. 'HGSS Block Modified'
+  format:        string   // slug, e.g. 'hgss-block-modified'
+  format_name?:  string  // display name
+  intended_size: number
+  energy_types:  string[] | null
   counts: { real: number; proxy: number; missing: number; ordered: number }
   fan_cards: FanCard[]
 }
@@ -179,7 +183,7 @@ export async function fetchAdminCards(params?: { name?: string; supertype?: stri
   if (params?.supertype) url.searchParams.set('supertype', params.supertype)
   if (params?.era)       url.searchParams.set('era',       params.era)
   if (params?.format_id) url.searchParams.set('format_id', String(params.format_id))
-  const res  = await fetch(url.toString())
+  const res  = await adminFetch(url.toString())
   const json = await res.json() as { data: AdminCard[] }
   return json.data
 }
@@ -211,13 +215,13 @@ export async function fetchFormat(slug: string): Promise<FormatDetail | null> {
 }
 
 export async function fetchPtcgSets(): Promise<PtcgSet[]> {
-  const res  = await fetch(`${BASE}/api/admin/pokemontcg/sets`)
+  const res  = await adminFetch(`${BASE}/api/admin/pokemontcg/sets`)
   const json = await res.json() as { data: PtcgSet[] }
   return json.data
 }
 
 export async function searchPokemontcg(q: string): Promise<{ data: any[]; error: string | null }> {
-  const res  = await fetch(`${BASE}/api/admin/pokemontcg/search?q=${encodeURIComponent(q)}`)
+  const res  = await adminFetch(`${BASE}/api/admin/pokemontcg/search?q=${encodeURIComponent(q)}`)
   const json = await res.json() as { data?: any[]; error?: string | null }
   return { data: json.data ?? [], error: json.error ?? null }
 }

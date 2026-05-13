@@ -5,6 +5,7 @@ type Env = {
   DB: D1Database
   STORAGE: R2Bucket
   POKEMONTCG_API_KEY: string
+  ADMIN_PASSWORD: string | undefined
 }
 
 const app = new Hono<{ Bindings: Env }>()
@@ -18,6 +19,23 @@ app.use('*', cors({
     return null
   },
 }))
+
+// ── Admin auth middleware ─────────────────────────────────────────────
+
+app.use('/api/admin/*', async (c, next) => {
+  const pw = c.env.ADMIN_PASSWORD
+  if (!pw) return next()  // secret not configured → open (dev mode)
+  const auth = c.req.header('Authorization') ?? ''
+  if (!auth.startsWith('Basic ')) {
+    return c.json({ error: 'Unauthorized' }, 401, { 'WWW-Authenticate': 'Basic realm="Deck Archive Admin"' })
+  }
+  const decoded = atob(auth.slice(6))
+  const password = decoded.slice(decoded.indexOf(':') + 1)
+  if (password !== pw) {
+    return c.json({ error: 'Unauthorized' }, 401, { 'WWW-Authenticate': 'Basic realm="Deck Archive Admin"' })
+  }
+  return next()
+})
 
 // ── Image proxy (R2) ──────────────────────────────────────────────────
 
@@ -104,7 +122,7 @@ app.get('/api/decks', async c => {
 
   let deckSql = `
     SELECT
-      d.id, d.slug, d.name, d.energy_type,
+      d.id, d.slug, d.name, d.energy_type, d.energy_types, d.intended_size,
       eb.key  AS era,       eb.slug AS era_slug, eb.name AS era_name,
       eb.color AS era_color, eb.dark AS era_dark,
       f.slug  AS format,    f.name  AS format_name,
@@ -155,7 +173,10 @@ app.get('/api/decks', async c => {
       era_name:  row.era_name,
       era_color: row.era_color,
       era_dark:  row.era_dark,
-      format:    row.format,
+      format:        row.format,
+      format_name:   row.format_name ?? null,
+      intended_size: row.intended_size ?? 60,
+      energy_types:  row.energy_types ? JSON.parse(row.energy_types) : null,
       counts: {
         real:    row.count_real    ?? 0,
         proxy:   row.count_proxy   ?? 0,
@@ -174,7 +195,7 @@ app.get('/api/decks/:slug', async c => {
   const [deckResult, cardsResult] = await c.env.DB.batch([
     c.env.DB.prepare(`
       SELECT
-        d.id, d.slug, d.name, d.energy_type, d.cover_r2_key,
+        d.id, d.slug, d.name, d.energy_type, d.energy_types, d.cover_r2_key,
         d.primer_md, d.manual_status, d.intended_size,
         d.format_id, d.era_block_id,
         eb.key  AS era,        eb.slug AS era_slug, eb.name AS era_name,
@@ -218,6 +239,7 @@ app.get('/api/decks/:slug', async c => {
       slug:         deck.slug,
       name:         deck.name,
       energy_type:  deck.energy_type,
+      energy_types: deck.energy_types ? JSON.parse(deck.energy_types) : null,
       cover_r2_key: deck.cover_r2_key ?? null,
       primer_md:    deck.primer_md    ?? null,
       manual_status: deck.manual_status ?? null,
@@ -452,21 +474,18 @@ app.get('/api/admin/cards', async c => {
   const params: any[] = []
   if (name)      { sql += ' AND (c.name LIKE ? OR c.display_name LIKE ?)'; params.push(`%${name}%`, `%${name}%`) }
   if (supertype) { sql += ' AND c.supertype = ?'; params.push(supertype) }
-  if (era)       { sql += ' AND (eb.slug = ? OR c.is_basic_energy = 1)'; params.push(era) }
+  if (era)       { sql += ' AND eb.slug = ?'; params.push(era) }
   if (formatId) {
     const fmt = await c.env.DB.prepare('SELECT era_id, regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
     if (fmt) {
       if (fmt.legal_set_ids) {
-        // Most specific: filter by exact set IDs configured on the format
-        sql += ' AND (c.set_id IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        sql += ' AND (c.set_id IN (SELECT value FROM json_each(?)) OR c.is_custom = 1)'
         params.push(fmt.legal_set_ids)
       } else if (fmt.regulation_marks) {
-        // Modern standard: filter by regulation mark
-        sql += ' AND (c.regulation_mark IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        sql += ' AND (c.regulation_mark IN (SELECT value FROM json_each(?)) OR c.is_custom = 1)'
         params.push(fmt.regulation_marks)
       } else if (fmt.era_id) {
-        // Old-era block with no marks/sets: filter by the format's era block
-        sql += ' AND (c.era_block_id = ? OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        sql += ' AND (c.era_block_id = ? OR c.is_custom = 1)'
         params.push(fmt.era_id)
       }
     }
@@ -610,9 +629,14 @@ app.post('/api/admin/decks', async c => {
 app.patch('/api/admin/decks/:id', async c => {
   const id   = Number(c.req.param('id'))
   const body = await c.req.json<any>()
-  const fields = ['name', 'slug', 'era_block_id', 'format_id', 'energy_type', 'intended_size', 'primer_md', 'manual_status']
+  const fields = ['name', 'slug', 'era_block_id', 'format_id', 'energy_type', 'energy_types', 'intended_size', 'primer_md', 'manual_status']
   const sets: string[] = []; const params: any[] = []
-  for (const f of fields) { if (f in body) { sets.push(`${f} = ?`); params.push(body[f] ?? null) } }
+  for (const f of fields) {
+    if (f in body) {
+      sets.push(`${f} = ?`)
+      params.push(f === 'energy_types' ? (Array.isArray(body[f]) ? JSON.stringify(body[f]) : null) : (body[f] ?? null))
+    }
+  }
   sets.push('updated_at = unixepoch()'); params.push(id)
   await c.env.DB.prepare(`UPDATE decks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
   return c.json({ success: true })

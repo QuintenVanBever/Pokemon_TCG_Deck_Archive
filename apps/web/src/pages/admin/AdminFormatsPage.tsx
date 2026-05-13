@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { adminS as S } from './AdminLayout'
 import { fetchFormats, fetchEraBlocks, BASE } from '../../lib/api'
 import type { Format, EraBlock } from '../../lib/api'
+import { adminFetch } from '../../lib/adminAuth'
 
 interface PtcgSet {
   id: string
@@ -57,7 +58,7 @@ export function AdminFormatsPage() {
     if (allSets.length > 0 || loadingSets) return
     setLoadingSets(true)
     try {
-      const res  = await fetch(`${BASE}/api/admin/pokemontcg/sets`)
+      const res  = await adminFetch(`${BASE}/api/admin/pokemontcg/sets`)
       const json = await res.json() as { data: PtcgSet[] }
       setAllSets(json.data)
     } finally {
@@ -84,11 +85,11 @@ export function AdminFormatsPage() {
       legal_set_ids:    form.legal_set_ids.length    ? JSON.stringify(form.legal_set_ids)    : null,
     }
     if (editId) {
-      await fetch(`${BASE}/api/admin/formats/${editId}`, {
+      await adminFetch(`${BASE}/api/admin/formats/${editId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
     } else {
-      await fetch(`${BASE}/api/admin/formats`, {
+      await adminFetch(`${BASE}/api/admin/formats`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
     }
@@ -97,7 +98,7 @@ export function AdminFormatsPage() {
 
   const deleteFormat = async (id: number) => {
     if (!confirm('Delete this format? Decks assigned to it will lose their format.')) return
-    await fetch(`${BASE}/api/admin/formats/${id}`, { method: 'DELETE' })
+    await adminFetch(`${BASE}/api/admin/formats/${id}`, { method: 'DELETE' })
     load()
   }
 

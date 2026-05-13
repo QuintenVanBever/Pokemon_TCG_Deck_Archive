@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
 import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchFormats, BASE } from '../../lib/api'
+import { ENERGY_META } from '../../data/decks'
+import { adminFetch } from '../../lib/adminAuth'
 import type { DeckDetail, DeckCard, EraBlock, AdminCard, Format } from '../../lib/api'
+import type { EnergyType } from '../../data/decks'
 
-const ENERGY_TYPES = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water']
+const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water'] as const
 
 function QtyCell({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -33,7 +36,7 @@ export function AdminDeckEditPage() {
   const [deck,    setDeck]    = useState<DeckDetail | null>(null)
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
   const [formats, setFormats] = useState<Format[]>([])
-  const [meta,    setMeta]    = useState({ name: '', slug: '', era_block_id: 0, energy_type: 'Colorless', intended_size: 60, primer_md: '', format_id: 0 })
+  const [meta,    setMeta]    = useState({ name: '', slug: '', era_block_id: 0, energy_type: 'colorless', energy_types: ['colorless'] as string[], intended_size: 60, primer_md: '', format_id: 0 })
   const [metaSaved, setMetaSaved] = useState(false)
 
   // Card search state
@@ -53,7 +56,8 @@ export function AdminDeckEditPage() {
     const d = await fetchDeck(slug)
     if (!d) return
     setDeck(d)
-    setMeta({ name: d.name, slug: d.slug, era_block_id: d.era_block_id, energy_type: d.energy_type, intended_size: d.intended_size, primer_md: d.primer_md ?? '', format_id: d.format_id })
+    const types = (d.energy_types ?? [d.energy_type]).map(t => t.toLowerCase())
+    setMeta({ name: d.name, slug: d.slug, era_block_id: d.era_block_id, energy_type: types[0] ?? 'colorless', energy_types: types, intended_size: d.intended_size, primer_md: d.primer_md ?? '', format_id: d.format_id })
     setSearchFormatId(d.format_id)
     const initial: typeof qtys = {}
     const initialFan: Record<number, number | null> = {}
@@ -69,10 +73,10 @@ export function AdminDeckEditPage() {
 
   const saveMeta = async () => {
     if (!deck) return
-    await fetch(`${BASE}/api/admin/decks/${deck.id}`, {
+    await adminFetch(`${BASE}/api/admin/decks/${deck.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: meta.name, slug: meta.slug, era_block_id: meta.era_block_id, energy_type: meta.energy_type, intended_size: meta.intended_size, primer_md: meta.primer_md || null, format_id: meta.format_id }),
+      body: JSON.stringify({ name: meta.name, slug: meta.slug, era_block_id: meta.era_block_id, energy_type: meta.energy_types[0] ?? meta.energy_type, energy_types: meta.energy_types, intended_size: meta.intended_size, primer_md: meta.primer_md || null, format_id: meta.format_id }),
     })
     setMetaSaved(true)
     setTimeout(() => setMetaSaved(false), 2000)
@@ -99,7 +103,7 @@ export function AdminDeckEditPage() {
     }
     setSaveError(null)
     setDuplicateWarning(null)
-    const res = await fetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
+    const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ card_id: card.id, qty_real: 1, qty_proxy: 0, qty_missing: 0, qty_ordered: 0 }),
@@ -118,7 +122,7 @@ export function AdminDeckEditPage() {
     const q = qtys[deckCardId]
     const fan_slot = fanSlots[deckCardId] ?? null
     setSaveError(null)
-    const res = await fetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, {
+    const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...q, fan_slot }),
@@ -133,7 +137,7 @@ export function AdminDeckEditPage() {
 
   const removeCard = async (deckCardId: number) => {
     if (!deck) return
-    await fetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, { method: 'DELETE' })
+    await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, { method: 'DELETE' })
     setDeleteConfirm(null)
     load()
   }
@@ -170,7 +174,7 @@ export function AdminDeckEditPage() {
       {/* Meta */}
       <div style={S.card}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 10 }}>Deck metadata</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 80px', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', gap: 10, marginBottom: 10 }}>
           <div style={S.field}>
             <label style={S.label}>Name</label>
             <input style={S.input} value={meta.name} onChange={e => setMeta(m => ({ ...m, name: e.target.value }))} />
@@ -181,27 +185,64 @@ export function AdminDeckEditPage() {
           </div>
           <div style={S.field}>
             <label style={S.label}>Era</label>
-            <select style={S.select} value={meta.era_block_id} onChange={e => setMeta(m => ({ ...m, era_block_id: Number(e.target.value) }))}>
+            <select
+              style={S.select}
+              value={meta.era_block_id}
+              onChange={e => {
+                const newEra = Number(e.target.value)
+                const fmtValid = formats.find(f => f.id === meta.format_id)?.era_id === newEra
+                setMeta(m => ({ ...m, era_block_id: newEra, format_id: fmtValid ? m.format_id : 0 }))
+              }}
+            >
               <option value={0}>— none —</option>
               {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
-          <div style={S.field}>
-            <label style={S.label}>Type</label>
-            <select style={S.select} value={meta.energy_type} onChange={e => setMeta(m => ({ ...m, energy_type: e.target.value }))}>
-              {ENERGY_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div style={S.field}>
             <label style={S.label}>Format</label>
             <select style={S.select} value={meta.format_id} onChange={e => setMeta(m => ({ ...m, format_id: Number(e.target.value) }))}>
               <option value={0}>— none —</option>
-              {formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              {(meta.era_block_id ? formats.filter(f => f.era_id === meta.era_block_id) : formats)
+                .map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
           <div style={S.field}>
             <label style={S.label}>Size</label>
             <input style={S.input} type="number" value={meta.intended_size} onChange={e => setMeta(m => ({ ...m, intended_size: Number(e.target.value) }))} />
+          </div>
+        </div>
+        <div style={{ ...S.field, marginBottom: 10 }}>
+          <label style={S.label}>Type(s) — first is primary</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {ENERGY_TYPES.map(t => {
+              const isOn = meta.energy_types.includes(t)
+              const e = ENERGY_META[t as EnergyType]
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => {
+                    const next = isOn
+                      ? meta.energy_types.filter(x => x !== t)
+                      : [...meta.energy_types, t]
+                    if (next.length === 0) return
+                    setMeta(m => ({ ...m, energy_types: next, energy_type: next[0] }))
+                  }}
+                  style={{
+                    padding: '3px 10px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+                    border: `1.5px solid ${isOn ? e.color : '#D0D5DD'}`,
+                    background: isOn ? e.color : 'transparent',
+                    color: isOn ? '#fff' : '#aaa',
+                    cursor: 'pointer', textTransform: 'uppercase',
+                  }}
+                >
+                  {t}
+                  {isOn && meta.energy_types[0] === t && meta.energy_types.length > 1 && (
+                    <span style={{ marginLeft: 4, opacity: 0.7, fontSize: 8 }}>★</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
         <div style={S.field}>

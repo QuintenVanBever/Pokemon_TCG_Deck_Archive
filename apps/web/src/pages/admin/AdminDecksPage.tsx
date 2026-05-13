@@ -3,12 +3,13 @@ import { Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
 import { fetchDecks, fetchEraBlocks, BASE } from '../../lib/api'
 import type { DeckSummary, EraBlock } from '../../lib/api'
+import { adminFetch } from '../../lib/adminAuth'
 
-const ENERGY_TYPES = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water']
+const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water']
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const emptyForm = () => ({
-  name: '', slug: '', era_block_id: '', format_id: '', energy_type: 'Colorless', intended_size: '60', primer_md: '',
+  name: '', slug: '', era_block_id: '', format_id: '', energy_type: 'colorless', intended_size: '60', primer_md: '',
 })
 
 export function AdminDecksPage() {
@@ -29,7 +30,7 @@ export function AdminDecksPage() {
   const createDeck = async () => {
     if (!form) return
     setCreateError(null)
-    const res = await fetch(`${BASE}/api/admin/decks`, {
+    const res = await adminFetch(`${BASE}/api/admin/decks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -52,7 +53,7 @@ export function AdminDecksPage() {
 
   const deleteDeck = async (id: number) => {
     if (!confirm('Delete this deck and all its cards?')) return
-    await fetch(`${BASE}/api/admin/decks/${id}`, { method: 'DELETE' })
+    await adminFetch(`${BASE}/api/admin/decks/${id}`, { method: 'DELETE' })
     load()
   }
 
@@ -77,6 +78,21 @@ export function AdminDecksPage() {
                 <input style={S.input} value={form.slug} onChange={e => setForm(f => ({ ...f!, slug: e.target.value }))} />
               </div>
               <div style={S.field}>
+                <label style={S.label}>Era</label>
+                <select
+                  style={S.select}
+                  value={form.era_block_id}
+                  onChange={e => {
+                    const newEra = e.target.value
+                    const fmtValid = formats.find(f => f.id === Number(form.format_id))?.era_id === Number(newEra)
+                    setForm(f => ({ ...f!, era_block_id: newEra, format_id: fmtValid ? f!.format_id : '' }))
+                  }}
+                >
+                  <option value="">Select…</option>
+                  {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div style={S.field}>
                 <label style={S.label}>Format</label>
                 <select
                   style={S.select}
@@ -91,14 +107,8 @@ export function AdminDecksPage() {
                   }}
                 >
                   <option value="">Select…</option>
-                  {formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-              </div>
-              <div style={S.field}>
-                <label style={S.label}>Era</label>
-                <select style={S.select} value={form.era_block_id} onChange={e => setForm(f => ({ ...f!, era_block_id: e.target.value }))}>
-                  <option value="">Select…</option>
-                  {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {(form.era_block_id ? formats.filter(f => f.era_id === Number(form.era_block_id)) : formats)
+                    .map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div style={S.field}>

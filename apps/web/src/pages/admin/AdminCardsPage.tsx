@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { adminS as S } from './AdminLayout'
 import { fetchAdminCards, fetchEraBlocks, searchPokemontcg, BASE } from '../../lib/api'
 import type { AdminCard, EraBlock } from '../../lib/api'
+import { adminFetch } from '../../lib/adminAuth'
 
 const SUPERTYPES = ['Pokémon', 'Trainer', 'Energy']
 
@@ -68,16 +69,16 @@ export function AdminCardsPage() {
       is_custom:     Number(form.is_custom),
     }
     if (editId) {
-      await fetch(`${BASE}/api/admin/cards/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      await adminFetch(`${BASE}/api/admin/cards/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     } else {
-      await fetch(`${BASE}/api/admin/cards`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      await adminFetch(`${BASE}/api/admin/cards`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     }
     setForm(null); setEditId(null); load()
   }
 
   const openDeleteModal = async (card: AdminCard) => {
     setDeleteLoading(true)
-    const res  = await fetch(`${BASE}/api/admin/cards/${card.id}/decks`)
+    const res  = await adminFetch(`${BASE}/api/admin/cards/${card.id}/decks`)
     const json = await res.json() as { data: { id: number; name: string; slug: string }[] }
     setDeleteModal({ cardId: card.id, cardName: card.display_name ?? card.name, decks: json.data })
     setDeleteLoading(false)
@@ -85,7 +86,7 @@ export function AdminCardsPage() {
 
   const confirmDelete = async () => {
     if (!deleteModal) return
-    await fetch(`${BASE}/api/admin/cards/${deleteModal.cardId}`, { method: 'DELETE' })
+    await adminFetch(`${BASE}/api/admin/cards/${deleteModal.cardId}`, { method: 'DELETE' })
     setDeleteModal(null)
     load()
   }
@@ -105,7 +106,7 @@ export function AdminCardsPage() {
   }
 
   const importCard = async (ptcgCard: any) => {
-    await fetch(`${BASE}/api/admin/cards/import`, {
+    await adminFetch(`${BASE}/api/admin/cards/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pokemontcg_id: ptcgCard.id, era_block_id: importEra ? Number(importEra) : undefined }),

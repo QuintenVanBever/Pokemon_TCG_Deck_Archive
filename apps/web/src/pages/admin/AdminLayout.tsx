@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Outlet, Link, useRouterState } from '@tanstack/react-router'
+import { getAdminPassword, setAdminPassword, clearAdminPassword, adminFetch } from '../../lib/adminAuth'
+import { BASE } from '../../lib/api'
 
 const S = {
   page:    { padding: '24px 28px' },
@@ -19,8 +22,72 @@ const S = {
 
 export { S as adminS }
 
+function PasswordGate({ onAuth }: { onAuth: () => void }) {
+  const [pw, setPw]       = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy]   = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pw) return
+    setBusy(true); setError('')
+    setAdminPassword(pw)
+    const res = await adminFetch(`${BASE}/api/admin/decks`)
+    if (res.status === 401) {
+      clearAdminPassword()
+      setError('Incorrect password')
+    } else {
+      onAuth()
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: 'calc(100vh - var(--topbar-h))',
+      background: '#F5F7FA',
+    }}>
+      <form onSubmit={submit} style={{
+        background: '#fff', padding: '2rem 2.5rem',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.10)',
+        minWidth: 300, display: 'flex', flexDirection: 'column', gap: 14,
+      }}>
+        <div style={{ fontFamily: 'var(--font-d)', fontSize: 18, color: 'var(--navy)', marginBottom: 4 }}>
+          Admin Login
+        </div>
+        <div style={{ fontSize: 12, color: '#888' }}>Enter the admin password to continue.</div>
+        <input
+          type="password"
+          value={pw}
+          onChange={e => setPw(e.target.value)}
+          placeholder="Password"
+          autoFocus
+          style={{ padding: '8px 12px', fontSize: 14, border: '1.5px solid #D0D5DD', outline: 'none' }}
+        />
+        {error && <div style={{ fontSize: 12, color: '#CC3333' }}>{error}</div>}
+        <button
+          type="submit"
+          disabled={busy || !pw}
+          style={{
+            background: 'var(--navy)', color: 'var(--yellow)',
+            border: 'none', padding: '9px 0', fontSize: 13, fontWeight: 700,
+            fontFamily: 'var(--font-d)', cursor: busy ? 'default' : 'pointer',
+            opacity: busy || !pw ? 0.6 : 1,
+          }}
+        >
+          {busy ? 'Checking…' : 'Enter'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 export function AdminLayout() {
-  const path = useRouterState({ select: s => s.location.pathname })
+  const path   = useRouterState({ select: s => s.location.pathname })
+  const [authed, setAuthed] = useState(() => !!getAdminPassword())
+
+  if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />
 
   const navLink = (to: string, label: string) => {
     const active = path.startsWith(to)
@@ -54,6 +121,16 @@ export function AdminLayout() {
         <Link to="/decks" style={{ display: 'block', padding: '8px 16px', textDecoration: 'none', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
           ← Public site
         </Link>
+        <button
+          onClick={() => { clearAdminPassword(); setAuthed(false) }}
+          style={{
+            display: 'block', width: '100%', textAlign: 'left',
+            padding: '8px 16px', background: 'transparent', border: 'none',
+            cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.25)',
+          }}
+        >
+          Lock admin
+        </button>
       </div>
       <div style={{ overflowY: 'auto', background: '#F5F7FA' }}>
         <Outlet />

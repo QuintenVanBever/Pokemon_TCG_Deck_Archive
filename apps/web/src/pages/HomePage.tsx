@@ -99,14 +99,17 @@ function DeckEntry({ deck, index }: { deck: DeckSummary; index: number }) {
   const e = ENERGY_META[energy] ?? ENERGY_META['colorless']
   const { counts } = deck
   const tot = counts.real + counts.proxy + counts.missing + counts.ordered
-  const realPct = tot > 0 ? Math.round((counts.real / tot) * 100) : 0
+  const intended = deck.intended_size ?? 60
+  const completePct = intended > 0 ? Math.round(((counts.real + counts.proxy) / intended) * 100) : 0
+
+  const allTypes = deck.energy_types ?? [deck.energy_type]
 
   const positions = ['left', 'center', 'right'] as const
   const fanBySlot: Record<number, FanCard> = {}
   for (const f of deck.fan_cards ?? []) fanBySlot[f.fan_slot] = f
   const barSegs = (['real', 'proxy', 'ordered', 'missing'] as const)
     .filter(s => counts[s] > 0)
-    .map(s => ({ key: s, flex: counts[s], color: BAR_COLORS[s] }))
+    .map(s => ({ key: s, pct: (counts[s] / intended) * 100, color: BAR_COLORS[s] }))
 
   return (
     <Link
@@ -164,8 +167,21 @@ function DeckEntry({ deck, index }: { deck: DeckSummary; index: number }) {
               fontSize: '0.6rem', fontWeight: 700,
               color: 'rgba(255,255,255,0.48)',
               textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 2,
+              display: 'flex', alignItems: 'center', gap: 4,
             }}>
               {deck.era} · {deck.format.charAt(0).toUpperCase() + deck.format.slice(1)}
+              {allTypes.length > 1 && (
+                <span style={{ display: 'flex', gap: 2, marginLeft: 2 }}>
+                  {allTypes.map(t => (
+                    <span key={t} style={{
+                      display: 'inline-block', width: 7, height: 7,
+                      background: ENERGY_META[t as EnergyType]?.color ?? '#888',
+                      borderRadius: '50%',
+                      border: '1px solid rgba(255,255,255,0.55)',
+                    }} />
+                  ))}
+                </span>
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -174,16 +190,16 @@ function DeckEntry({ deck, index }: { deck: DeckSummary; index: number }) {
               color: 'rgba(255,255,255,0.94)',
               textShadow: '0 1px 4px rgba(0,0,0,0.35)',
             }}>
-              {realPct}%
+              {completePct}%
             </div>
             <div style={{ fontSize: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>
-              Real
+              Complete
             </div>
           </div>
         </div>
         <div style={{ height: 5, display: 'flex', background: 'rgba(0,0,0,0.15)', flexShrink: 0 }}>
-          {barSegs.map(({ key, flex, color }) => (
-            <div key={key} style={{ flex, background: color, height: '100%' }} />
+          {barSegs.map(({ key, pct, color }) => (
+            <div key={key} style={{ width: `${pct}%`, background: color, height: '100%', flexShrink: 0 }} />
           ))}
         </div>
       </div>
@@ -331,8 +347,11 @@ export function HomePage() {
   ]
 
   const filtered = decks.filter(d => {
-    if (energyFilter !== 'all' && d.energy_type !== energyFilter) return false
-    if (eraFilter    !== 'all' && d.era_slug    !== eraFilter)    return false
+    if (energyFilter !== 'all') {
+      const types = d.energy_types ?? [d.energy_type]
+      if (!types.includes(energyFilter)) return false
+    }
+    if (eraFilter !== 'all' && d.era_slug !== eraFilter) return false
     return true
   })
 

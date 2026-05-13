@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { adminS as S } from './AdminLayout'
 import { fetchEraBlocks, BASE } from '../../lib/api'
 import type { EraBlock } from '../../lib/api'
+import { adminFetch } from '../../lib/adminAuth'
 
 type EraForm = Omit<EraBlock, 'id'>
 
@@ -42,11 +43,11 @@ export function AdminErasPage() {
       rules_json:   form.rules_json   || null,
     }
     if (editId) {
-      await fetch(`${BASE}/api/admin/era-blocks/${editId}`, {
+      await adminFetch(`${BASE}/api/admin/era-blocks/${editId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
     } else {
-      await fetch(`${BASE}/api/admin/era-blocks`, {
+      await adminFetch(`${BASE}/api/admin/era-blocks`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
     }
@@ -57,7 +58,7 @@ export function AdminErasPage() {
 
   const deleteEra = async (id: number) => {
     if (!confirm('Delete this era? This cannot be undone.')) return
-    await fetch(`${BASE}/api/admin/era-blocks/${id}`, { method: 'DELETE' })
+    await adminFetch(`${BASE}/api/admin/era-blocks/${id}`, { method: 'DELETE' })
     if (editId === id) { setForm(null); setEditId(null) }
     load()
   }

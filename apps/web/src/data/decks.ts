@@ -2,7 +2,7 @@ export type EraKey     = 'HGSS' | 'BW' | 'XY' | 'SM' | 'SwSh' | 'SV'
 export type EraClass   = 'hgss' | 'bw' | 'xy' | 'sm' | 'swsh' | 'sv'
 export type EnergyType = 'fire' | 'water' | 'grass' | 'lightning' | 'psychic' | 'fighting' | 'darkness' | 'metal' | 'dragon' | 'colorless'
 export type CardStatus = 'real' | 'proxy' | 'missing' | 'ordered'
-export type DeckStatus = 'all-real' | 'playable' | 'wip' | 'awaiting'
+export type DeckStatus = 'playable' | 'wip' | 'awaiting'
 
 export interface DeckCard {
   name: string
@@ -65,11 +65,14 @@ export const STATUS_COLORS = {
   ordered: '#1E78C4',
 }
 
-export function deriveDeckStatus(counts: Deck['counts']): DeckStatus {
-  if (counts.missing === 0 && counts.proxy === 0 && counts.ordered === 0) return 'all-real'
-  if (counts.missing === 0 && counts.ordered > 0) return 'awaiting'
-  if (counts.missing === 0) return 'playable'
-  return 'wip'
+export function deriveDeckStatus(
+  counts: { real: number; proxy: number; missing: number; ordered: number },
+  intendedSize = 60,
+): DeckStatus {
+  const total = counts.real + counts.proxy + counts.missing + counts.ordered
+  if (counts.missing > 0 || total < intendedSize) return 'wip'
+  if (counts.ordered > 0) return 'awaiting'
+  return 'playable'
 }
 
 export const DECKS: Deck[] = [

@@ -18,11 +18,8 @@ function Panel({ children, style }: { children: React.ReactNode; style?: React.C
 /* ── Headline counters ─────────────────────────────── */
 
 function HeadlineGrid({ stats, decks }: { stats: StatsOverview; decks: DeckSummary[] }) {
-  const playable = decks.filter(d => {
-    const s = deriveDeckStatus(d.counts)
-    return s === 'all-real' || s === 'playable'
-  }).length
-  const wip = decks.filter(d => deriveDeckStatus(d.counts) === 'wip').length
+  const playable = decks.filter(d => deriveDeckStatus(d.counts, d.intended_size) === 'playable').length
+  const wip = decks.filter(d => deriveDeckStatus(d.counts, d.intended_size) === 'wip').length
 
   return (
     <div className="grid-4-to-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, background: 'rgba(26,58,92,0.08)', marginBottom: '1.75rem' }}>
@@ -65,9 +62,9 @@ function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
         <tbody>
           {decks.map((deck, i) => {
             const { counts } = deck
-            const status = deriveDeckStatus(counts)
-            const statusLabel: Record<string, string>  = { 'all-real': 'All Real', playable: 'Playable', wip: 'WIP', awaiting: 'Awaiting' }
-            const statusColor: Record<string, string>  = { 'all-real': 'var(--real)', playable: 'var(--real)', wip: 'var(--missing)', awaiting: 'var(--ordered)' }
+            const status = deriveDeckStatus(counts, deck.intended_size)
+            const statusLabel: Record<string, string>  = { playable: 'Playable', wip: 'WIP', awaiting: 'Awaiting' }
+            const statusColor: Record<string, string>  = { playable: 'var(--real)', wip: 'var(--missing)', awaiting: 'var(--ordered)' }
             const tot = counts.real + counts.proxy + counts.missing + counts.ordered
             return (
               <tr key={deck.slug} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.02)' }}>
