@@ -90,7 +90,10 @@ body::before {
 }
 
 a { color: inherit; text-decoration: none; }
-button { font-family: var(--font-b); cursor: pointer; }
+button { font-family: var(--font-b); cursor: pointer; transition: opacity 0.14s, transform 0.12s; }
+button:hover { opacity: 0.82; }
+button:active { transform: scale(0.96); }
+button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 img { display: block; max-width: 100%; }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }

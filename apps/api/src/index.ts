@@ -183,10 +183,10 @@ app.get('/api/decks/:slug', async c => {
       SELECT
         d.id, d.slug, d.name, d.energy_type, d.cover_r2_key,
         d.primer_md, d.manual_status, d.intended_size,
-        d.format_id,
+        d.format_id, d.era_block_id,
         eb.key  AS era,        eb.slug AS era_slug, eb.name AS era_name,
         eb.color AS era_color,  eb.dark AS era_dark,
-        f.slug  AS format
+        f.slug  AS format,     f.name  AS format_name
       FROM decks d
       JOIN era_blocks eb ON eb.id = d.era_block_id
       JOIN formats    f  ON f.id  = d.format_id
@@ -229,12 +229,14 @@ app.get('/api/decks/:slug', async c => {
       manual_status: deck.manual_status ?? null,
       intended_size: deck.intended_size ?? 60,
       format_id:    deck.format_id,
+      era_block_id: deck.era_block_id,
       era:          deck.era,
       era_slug:     deck.era_slug,
       era_name:     deck.era_name,
       era_color:    deck.era_color,
       era_dark:     deck.era_dark,
       format:       deck.format,
+      format_name:  deck.format_name,
       counts,
       cards: cards.map(r => ({
         deck_card_id:      r.deck_card_id,
@@ -294,12 +296,15 @@ app.get('/api/stats/overview', async c => {
 app.get('/api/stats/buylist', async c => {
   const era           = c.req.query('era')       ?? null
   const supertype     = c.req.query('supertype') ?? null
+  const setId         = c.req.query('set_id')    ?? null
   const includeCustom = c.req.query('include_custom') === 'true'
 
   let sql = `
     SELECT
       COALESCE(c.display_name, c.name) AS name,
       c.supertype,
+      c.set_id,
+      c.set_name,
       card_era.key   AS era,
       card_era.slug  AS era_slug,
       card_era.color AS era_color,
@@ -316,6 +321,7 @@ app.get('/api/stats/buylist', async c => {
   const params: (string | number)[] = []
   if (era)       { sql += ' AND deck_era.slug = ?'; params.push(era) }
   if (supertype) { sql += ' AND c.supertype   = ?'; params.push(supertype) }
+  if (setId)     { sql += ' AND c.set_id      = ?'; params.push(setId) }
   if (!includeCustom) { sql += ' AND c.is_custom = 0' }
   sql += `
     GROUP BY c.id
@@ -326,6 +332,7 @@ app.get('/api/stats/buylist', async c => {
   return c.json({
     data: results.map((r: any) => ({
       name: r.name, supertype: r.supertype,
+      set_id: r.set_id ?? null, set_name: r.set_name ?? null,
       era: r.era ?? null, era_slug: r.era_slug ?? null, era_color: r.era_color ?? null,
       missing: r.missing, proxied: r.proxied, ordered: r.ordered, deck_count: r.deck_count,
     })),
@@ -450,15 +457,15 @@ app.get('/api/admin/cards', async c => {
   const params: any[] = []
   if (name)      { sql += ' AND (c.name LIKE ? OR c.display_name LIKE ?)'; params.push(`%${name}%`, `%${name}%`) }
   if (supertype) { sql += ' AND c.supertype = ?'; params.push(supertype) }
-  if (era)       { sql += ' AND eb.slug = ?';     params.push(era) }
+  if (era)       { sql += ' AND (eb.slug = ? OR c.is_basic_energy = 1)'; params.push(era) }
   if (formatId) {
     const fmt = await c.env.DB.prepare('SELECT regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
     if (fmt?.regulation_marks) {
-      sql += ' AND c.regulation_mark IN (SELECT value FROM json_each(?))'
+      sql += ' AND (c.regulation_mark IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1)'
       params.push(fmt.regulation_marks)
     }
     if (fmt?.legal_set_ids) {
-      sql += ' AND c.set_id IN (SELECT value FROM json_each(?))'
+      sql += ' AND (c.set_id IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1)'
       params.push(fmt.legal_set_ids)
     }
   }

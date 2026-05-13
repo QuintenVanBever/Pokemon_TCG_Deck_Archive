@@ -68,6 +68,8 @@ export interface DeckDetail extends DeckSummary {
   manual_status: string | null
   intended_size: number
   format_id:     number
+  era_block_id:  number
+  format_name:   string
   cards:         DeckCard[]
 }
 
@@ -113,6 +115,8 @@ export async function fetchStatsOverview(): Promise<StatsOverview> {
 export interface BuylistRow {
   name: string
   supertype: string
+  set_id: string | null
+  set_name: string | null
   era: string | null
   era_slug: string | null
   era_color: string | null
@@ -125,11 +129,13 @@ export interface BuylistRow {
 export async function fetchBuylist(params?: {
   era?: string
   supertype?: string
+  set_id?: string
   include_custom?: boolean
 }): Promise<BuylistRow[]> {
   const url = new URL(`${BASE}/api/stats/buylist`, window.location.href)
   if (params?.era)            url.searchParams.set('era',            params.era)
   if (params?.supertype)      url.searchParams.set('supertype',      params.supertype)
+  if (params?.set_id)         url.searchParams.set('set_id',         params.set_id)
   if (params?.include_custom) url.searchParams.set('include_custom', 'true')
   const res  = await fetch(url.toString())
   const json = await res.json() as { data: BuylistRow[] }

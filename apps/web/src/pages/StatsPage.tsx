@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { deriveDeckStatus } from '../data/decks'
 import { fetchDecks, fetchStatsOverview, fetchBuylist, type DeckSummary, type StatsOverview, type BuylistRow } from '../lib/api'
 
 type TabId = 'per-deck' | 'buy-list' | 'per-card'
+type SortDir = 'asc' | 'desc'
 
 /* ── Panel wrapper ─────────────────────────────────── */
 
@@ -87,14 +88,17 @@ function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
 
 /* ── Buy list tab ──────────────────────────────────── */
 
-type EraChip = { slug: string; label: string; color: string }
+type EraOption = { slug: string; label: string; color: string }
 
-function BuyListTab({ eras }: { eras: EraChip[] }) {
+function BuyListTab({ eras }: { eras: EraOption[] }) {
   const [eraFilter,     setEraFilter]     = useState('all')
   const [typeFilter,    setTypeFilter]    = useState('all')
+  const [setFilter,     setSetFilter]     = useState('all')
   const [includeCustom, setIncludeCustom] = useState(false)
-  const [rows, setRows]                   = useState<BuylistRow[]>([])
-  const [loading, setLoading]             = useState(true)
+  const [rows,    setRows]    = useState<BuylistRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sortCol, setSortCol] = useState<'name' | 'supertype' | 'set_name' | 'missing' | 'ordered' | 'proxied' | 'deck_count'>('missing')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   useEffect(() => {
     setLoading(true)
@@ -105,14 +109,37 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
     }).then(data => { setRows(data); setLoading(false) })
   }, [eraFilter, typeFilter, includeCustom])
 
-  const totalMissing = rows.reduce((s, r) => s + r.missing, 0)
-  const totalProxied = rows.reduce((s, r) => s + r.proxied, 0)
-  const totalOrdered = rows.reduce((s, r) => s + r.ordered, 0)
+  const sortedRows = useMemo(() => {
+    const filtered = setFilter === 'all' ? rows : rows.filter(r => r.set_name === setFilter)
+    return [...filtered].sort((a, b) => {
+      let va: string | number, vb: string | number
+      if (sortCol === 'name')       { va = a.name;       vb = b.name }
+      else if (sortCol === 'supertype') { va = a.supertype;  vb = b.supertype }
+      else if (sortCol === 'set_name')  { va = a.set_name ?? ''; vb = b.set_name ?? '' }
+      else                          { va = a[sortCol];   vb = b[sortCol] }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1
+      if (va > vb) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [rows, setFilter, sortCol, sortDir])
+
+  const setOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const opts: string[] = []
+    for (const r of rows) {
+      if (r.set_name && !seen.has(r.set_name)) { seen.add(r.set_name); opts.push(r.set_name) }
+    }
+    return opts.sort()
+  }, [rows])
+
+  const totalMissing = sortedRows.reduce((s, r) => s + r.missing, 0)
+  const totalProxied = sortedRows.reduce((s, r) => s + r.proxied, 0)
+  const totalOrdered = sortedRows.reduce((s, r) => s + r.ordered, 0)
 
   function exportCsv() {
-    const header = 'Card,Era,Type,Missing,Ordered,Proxied,In Decks\n'
-    const body   = rows
-      .map(r => `"${r.name}","${r.era ?? ''}","${r.supertype}",${r.missing},${r.ordered},${r.proxied},${r.deck_count}`)
+    const header = 'Card,Set,Type,Missing,Ordered,Proxied,In Decks\n'
+    const body   = sortedRows
+      .map(r => `"${r.name}","${r.set_name ?? ''}","${r.supertype}",${r.missing},${r.ordered},${r.proxied},${r.deck_count}`)
       .join('\n')
     const blob = new Blob([header + body], { type: 'text/csv' })
     const a    = document.createElement('a')
@@ -134,6 +161,27 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
     borderBottom: '1px solid rgba(26,58,92,0.05)',
   }
 
+  const thBase: React.CSSProperties = {
+    textAlign: 'left', fontFamily: 'var(--font-b)', fontSize: '0.6rem',
+    fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
+    color: 'rgba(26,58,92,0.4)', padding: '0.5rem 0.8rem',
+    borderBottom: '1px solid rgba(26,58,92,0.08)',
+    cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+  }
+
+  const SortTh = ({ col, children }: { col: typeof sortCol; children: React.ReactNode }) => {
+    const active = sortCol === col
+    const toggle = () => {
+      if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+      else { setSortCol(col); setSortDir('desc') }
+    }
+    return (
+      <th onClick={toggle} style={{ ...thBase, color: active ? 'var(--navy)' : 'rgba(26,58,92,0.4)' }}>
+        {children}{active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+      </th>
+    )
+  }
+
   return (
     <Panel>
       {/* Toolbar */}
@@ -143,15 +191,17 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
         background: 'rgba(26,58,92,0.02)',
         display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center',
       }}>
-        {/* Block chips */}
-        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Block</span>
-          <FilterChip active={eraFilter === 'all'} onClick={() => setEraFilter('all')}>All</FilterChip>
-          {eras.map(e => (
-            <FilterChip key={e.slug} active={eraFilter === e.slug} color={e.color} onClick={() => setEraFilter(e.slug)}>
-              {e.label}
-            </FilterChip>
-          ))}
+        {/* Block dropdown */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)' }}>Block</span>
+          <select
+            value={eraFilter}
+            onChange={e => setEraFilter(e.target.value)}
+            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', border: '1.5px solid rgba(26,58,92,0.15)', background: '#fff', fontFamily: 'var(--font-b)', fontWeight: 700, color: 'rgba(26,58,92,0.7)', cursor: 'pointer' }}
+          >
+            <option value="all">All Blocks</option>
+            {eras.map(e => <option key={e.slug} value={e.slug}>{e.label}</option>)}
+          </select>
         </div>
 
         <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
@@ -163,6 +213,24 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
             <FilterChip key={t.key} active={typeFilter === t.key} onClick={() => setTypeFilter(t.key)}>{t.label}</FilterChip>
           ))}
         </div>
+
+        {/* Set dropdown */}
+        {setOptions.length > 0 && (
+          <>
+            <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)' }}>Set</span>
+              <select
+                value={setFilter}
+                onChange={e => setSetFilter(e.target.value)}
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', border: '1.5px solid rgba(26,58,92,0.15)', background: '#fff', fontFamily: 'var(--font-b)', fontWeight: 700, color: 'rgba(26,58,92,0.7)', cursor: 'pointer', maxWidth: 160 }}
+              >
+                <option value="all">All Sets</option>
+                {setOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </>
+        )}
 
         {/* Custom toggle */}
         <FilterChip active={includeCustom} onClick={() => setIncludeCustom(v => !v)}>
@@ -189,7 +257,7 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
           <button
             onClick={exportCsv}
             style={chipStyle(false)}
-            disabled={rows.length === 0}
+            disabled={sortedRows.length === 0}
           >
             Export CSV
           </button>
@@ -201,7 +269,7 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
         <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
           Loading…
         </div>
-      ) : rows.length === 0 ? (
+      ) : sortedRows.length === 0 ? (
         <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
           No cards to acquire for this filter — looking good!
         </div>
@@ -209,35 +277,23 @@ function BuyListTab({ eras }: { eras: EraChip[] }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>
             <tr>
-              {['Card', 'Era', 'Type', 'Missing ↓', 'Ordered', 'Proxied', 'In Decks'].map(h => (
-                <th key={h} style={{
-                  textAlign: 'left', fontFamily: 'var(--font-b)', fontSize: '0.6rem',
-                  fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
-                  color: 'rgba(26,58,92,0.4)', padding: '0.5rem 0.8rem',
-                  borderBottom: '1px solid rgba(26,58,92,0.08)',
-                }}>{h}</th>
-              ))}
+              <SortTh col="name">Card</SortTh>
+              <SortTh col="set_name">Set</SortTh>
+              <SortTh col="supertype">Type</SortTh>
+              <SortTh col="missing">Missing ↓</SortTh>
+              <SortTh col="ordered">Ordered</SortTh>
+              <SortTh col="proxied">Proxied</SortTh>
+              <SortTh col="deck_count">In Decks</SortTh>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {sortedRows.map((row, i) => (
               <tr key={`${row.name}-${i}`} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}>
                 <td style={{ ...tdBase, fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>
                   {row.name}
                 </td>
-                <td style={tdBase}>
-                  {row.era ? (
-                    <span style={{
-                      background: (row.era_color ?? '#888') + '22',
-                      color: row.era_color ?? '#888',
-                      fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.08em',
-                      padding: '0.18rem 0.45rem',
-                    }}>
-                      {row.era}
-                    </span>
-                  ) : (
-                    <span style={{ color: 'rgba(26,58,92,0.3)', fontSize: '0.75rem' }}>—</span>
-                  )}
+                <td style={{ ...tdBase, fontSize: '0.75rem', color: 'rgba(26,58,92,0.5)' }}>
+                  {row.set_name ?? <span style={{ color: 'rgba(26,58,92,0.25)' }}>—</span>}
                 </td>
                 <td style={{ ...tdBase, color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.supertype}</td>
                 <td style={{ ...tdBase, fontWeight: 900, color: row.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)', fontSize: '1rem', fontFamily: 'var(--font-d)' }}>
@@ -293,8 +349,8 @@ export function StatsPage() {
     })
   }, [])
 
-  const eras: EraChip[] = decks
-    .reduce<EraChip[]>((acc, d) => {
+  const eras: EraOption[] = decks
+    .reduce<EraOption[]>((acc, d) => {
       if (!acc.find(e => e.slug === d.era_slug))
         acc.push({ slug: d.era_slug, label: d.era, color: d.era_color })
       return acc

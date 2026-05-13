@@ -14,6 +14,8 @@ const ERA_TEXT_COLORS: Record<string, string> = {
   sm: '#9A2018', swsh: '#3A8FAA', sv: '#8A2040',
 }
 
+const CARD_BACK = 'https://images.pokemontcg.io/cardback.png'
+
 /* ── Left panel — deck list ──────────────────────────*/
 
 function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean }) {
@@ -70,25 +72,15 @@ function StatCounter({ value, label, type }: { value: number; label: string; typ
 
 /* ── Sleeve ──────────────────────────────────────────*/
 
-function Sleeve({ name, status, imageUrl }: { name: string; status: SlotStatus; imageUrl: string | null }) {
+type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered'
+
+function Sleeve({ name, status, imageUrl, onClick }: { name: string; status: SlotStatus; imageUrl: string | null; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false)
-
-  const overlayStyle: Record<SlotStatus, React.CSSProperties> = {
-    real:    {},
-    proxy:   { background: 'rgba(212,184,64,0.35)' },
-    missing: { background: 'rgba(10,16,32,0.72)' },
-    ordered: { background: 'rgba(30,120,196,0.25)' },
-  }
-
-  const fallbackStyles: Record<SlotStatus, React.CSSProperties> = {
-    real:    { background: '#FAFAFA', border: '1.5px solid #CCDDDD', boxShadow: 'inset 0 0 0 2px #F0F8FF' },
-    proxy:   { background: '#FFFAE5', border: '1.5px solid #D4B840' },
-    missing: { background: '#1A2030', border: '1.5px dashed rgba(200,200,200,0.2)' },
-    ordered: { background: '#E8F6FF', border: '1.5px solid #7ABCDC' },
-  }
+  const src = imageUrl ?? CARD_BACK
 
   return (
     <div
+      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -96,26 +88,65 @@ function Sleeve({ name, status, imageUrl }: { name: string; status: SlotStatus; 
         transform: hovered ? 'translateY(-3px) scale(1.08)' : 'none',
         zIndex: hovered ? 2 : 'auto', transition: 'transform 0.14s',
         overflow: 'hidden',
-        ...(imageUrl ? { border: 'none' } : fallbackStyles[status]),
       }}
     >
-      {imageUrl ? (
+      <img
+        src={src}
+        alt={name}
+        style={{
+          width: '100%', height: '100%', display: 'block', objectFit: 'cover',
+          filter: status === 'missing' ? 'grayscale(100%) brightness(0.45)' : 'none',
+        }}
+      />
+
+      {/* Proxy: construction tape diagonal stripes + label */}
+      {status === 'proxy' && (
         <>
-          <img src={imageUrl} alt={name} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
-          {status !== 'real' && (
-            <div style={{ position: 'absolute', inset: 0, ...overlayStyle[status] }} />
-          )}
-        </>
-      ) : (
-        <>
-          {status === 'missing' && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 10, color: 'rgba(255,100,100,0.35)', fontWeight: 900 }}>×</span>}
-          {status === 'ordered' && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 8, color: 'rgba(30,120,196,0.45)' }}>◎</span>}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'repeating-linear-gradient(-45deg, rgba(255,204,0,0.55) 0px, rgba(255,204,0,0.55) 5px, rgba(0,0,0,0.5) 5px, rgba(0,0,0,0.5) 10px)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            background: 'rgba(0,0,0,0.78)', color: '#FFD700',
+            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
+          }}>PROXY</div>
         </>
       )}
-      {status === 'proxy'   && <span style={{ position: 'absolute', bottom: 2, right: 3, fontSize: 6, fontWeight: 900, color: imageUrl ? 'rgba(255,220,0,0.9)' : 'rgba(196,152,0,0.5)', textShadow: imageUrl ? '0 0 3px rgba(0,0,0,0.6)' : 'none' }}>P</span>}
-      {status === 'ordered' && imageUrl && <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 10, color: 'rgba(100,180,255,0.8)', textShadow: '0 0 4px rgba(0,0,0,0.5)' }}>◎</span>}
+
+      {/* Missing: grayscale filter on img + banner */}
+      {status === 'missing' && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'rgba(0,0,0,0.85)', color: '#FF6666',
+          fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
+        }}>MISSING</div>
+      )}
+
+      {/* Ordered: strong blue tint + ◎ + label */}
+      {status === 'ordered' && (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,120,196,0.45)' }} />
+          <span style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            fontSize: 14, color: 'rgba(160,220,255,0.95)',
+            textShadow: '0 0 4px rgba(0,0,0,0.6)',
+          }}>◎</span>
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            background: 'rgba(20,90,170,0.85)', color: '#CCE8FF',
+            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
+          }}>ORDERED</div>
+        </>
+      )}
+
       {hovered && (
-        <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: 'var(--navy)', color: '#fff', fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', padding: '4px 8px', zIndex: 10, pointerEvents: 'none' }}>
+        <div style={{
+          position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--navy)', color: '#fff', fontSize: 10, fontWeight: 700,
+          whiteSpace: 'nowrap', padding: '4px 8px', zIndex: 10, pointerEvents: 'none',
+        }}>
           {name}
         </div>
       )}
@@ -125,9 +156,7 @@ function Sleeve({ name, status, imageUrl }: { name: string; status: SlotStatus; 
 
 /* ── Sleeve grid ─────────────────────────────────────*/
 
-type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered'
-
-function SleeveGrid({ cards }: { cards: DeckCard[] }) {
+function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (slot: { name: string; imageUrl: string | null; status: SlotStatus }) => void }) {
   const slots: Array<{ name: string; status: SlotStatus; imageUrl: string | null }> = []
   for (const card of cards) {
     for (let i = 0; i < card.qty_real;    i++) slots.push({ name: card.name, status: 'real',    imageUrl: card.image_url })
@@ -140,8 +169,66 @@ function SleeveGrid({ cards }: { cards: DeckCard[] }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
       {slots.slice(0, 60).map((slot, i) => (
-        <Sleeve key={i} name={slot.name} status={slot.status} imageUrl={slot.imageUrl} />
+        <Sleeve
+          key={i}
+          name={slot.name}
+          status={slot.status}
+          imageUrl={slot.imageUrl}
+          onClick={() => onCardClick(slot)}
+        />
       ))}
+    </div>
+  )
+}
+
+/* ── Card expand modal ───────────────────────────────*/
+
+function CardModal({ name, imageUrl, status, onClose }: { name: string; imageUrl: string | null; status: SlotStatus; onClose: () => void }) {
+  const src = imageUrl ?? CARD_BACK
+  const statusLabel: Record<SlotStatus, string> = { real: 'Real', proxy: 'Proxy', missing: 'Missing', ordered: 'Ordered' }
+  const statusColor: Record<SlotStatus, string> = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.78)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative', width: 280,
+          background: 'var(--navy)', padding: 4,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+        }}
+      >
+        <img
+          src={src}
+          alt={name}
+          style={{
+            width: '100%', display: 'block',
+            aspectRatio: '63/88', objectFit: 'cover',
+            filter: status === 'missing' ? 'grayscale(100%) brightness(0.45)' : 'none',
+          }}
+        />
+        <div style={{ padding: '8px 6px 6px', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-d)', fontSize: 14, color: '#fff', marginBottom: 2 }}>{name}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: statusColor[status] }}>{statusLabel[status]}</div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: -10, right: -10,
+            width: 24, height: 24, borderRadius: '50%',
+            background: 'var(--yellow)', color: 'var(--navy)',
+            border: 'none', fontSize: 13, cursor: 'pointer',
+            fontWeight: 900, lineHeight: '24px', textAlign: 'center', padding: 0,
+          }}
+        >✕</button>
+      </div>
     </div>
   )
 }
@@ -175,15 +262,18 @@ function ActionBtn({ children, primary }: { children: React.ReactNode; primary?:
 export function DeckDetailPage() {
   const { slug } = useParams({ from: '/decks/$slug' })
 
-  const [deck, setDeck]     = useState<DeckDetail | null>(null)
-  const [allDecks, setAll]  = useState<DeckSummary[]>([])
+  const [deck, setDeck]       = useState<DeckDetail | null>(null)
+  const [allDecks, setAll]    = useState<DeckSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedEras, setExpandedEras] = useState<Record<string, boolean>>({})
+  const [expandedCard, setExpandedCard] = useState<{ name: string; imageUrl: string | null; status: SlotStatus } | null>(null)
 
   useEffect(() => {
     setLoading(true)
     Promise.all([fetchDeck(slug), fetchDecks()]).then(([d, all]) => {
       setDeck(d)
       setAll(all)
+      if (d) setExpandedEras({ [d.era_slug]: true })
       setLoading(false)
     })
   }, [slug])
@@ -205,9 +295,9 @@ export function DeckDetailPage() {
   }
 
   const eraOrder = ['hgss', 'bw', 'xy', 'sm', 'swsh', 'sv']
-  const byEra = eraOrder.reduce<Record<string, DeckSummary[]>>((acc, slug) => {
-    const group = allDecks.filter(d => d.era_slug === slug)
-    if (group.length > 0) acc[slug] = group
+  const byEra = eraOrder.reduce<Record<string, DeckSummary[]>>((acc, eSlug) => {
+    const group = allDecks.filter(d => d.era_slug === eSlug)
+    if (group.length > 0) acc[eSlug] = group
     return acc
   }, {})
 
@@ -226,16 +316,30 @@ export function DeckDetailPage() {
 
       {/* ── LEFT PANEL ─────────────────────────────── */}
       <div style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
-        {Object.entries(byEra).map(([eraSlug, decks]) => (
-          <div key={eraSlug}>
-            <div style={{ padding: '6px 16px 4px', fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>
-              {decks[0].era} Block
+        {Object.entries(byEra).map(([eraSlug, decks]) => {
+          const isExpanded = expandedEras[eraSlug] ?? false
+          return (
+            <div key={eraSlug}>
+              <button
+                onClick={() => setExpandedEras(x => ({ ...x, [eraSlug]: !x[eraSlug] }))}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', padding: '6px 16px 4px',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  fontSize: 9, fontWeight: 900, letterSpacing: '0.18em',
+                  textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+                  fontFamily: 'var(--font-b)',
+                }}
+              >
+                <span>{decks[0].era} Block</span>
+                <span style={{ fontSize: 8 }}>{isExpanded ? '▲' : '▼'}</span>
+              </button>
+              {isExpanded && decks.map(d => (
+                <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />
+              ))}
             </div>
-            {decks.map(d => (
-              <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />
-            ))}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────── */}
@@ -250,9 +354,14 @@ export function DeckDetailPage() {
           <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: eraTextColor, marginBottom: 4 }}>
             {eraLabel}
           </div>
-          <div style={{ fontFamily: 'var(--font-d)', fontSize: 30, color: 'var(--navy)', lineHeight: 1.05, textShadow: '1px 1px 0 rgba(0,0,0,0.07)', marginBottom: 18 }}>
+          <div style={{ fontFamily: 'var(--font-d)', fontSize: 30, color: 'var(--navy)', lineHeight: 1.05, textShadow: '1px 1px 0 rgba(0,0,0,0.07)', marginBottom: 6 }}>
             {deck.name}
           </div>
+          {deck.format_name && (
+            <div style={{ fontSize: 11, color: 'rgba(26,58,92,0.45)', fontWeight: 700, marginBottom: 18, letterSpacing: '0.04em' }}>
+              {deck.format_name}
+            </div>
+          )}
 
           {/* Stat counters */}
           <div style={{ display: 'flex', gap: 0, marginBottom: 22, boxShadow: '0 2px 8px rgba(26,58,92,0.08)' }}>
@@ -268,17 +377,17 @@ export function DeckDetailPage() {
         {/* Sleeve grid */}
         <div style={{ background: '#FFFFFF', padding: 18, boxShadow: '0 4px 20px rgba(26,58,92,0.1)', marginBottom: 16 }}>
           <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 14 }}>
-            All {totalCards} cards · hover for card name
+            All {totalCards} cards · click to enlarge · hover for name
           </div>
-          <SleeveGrid cards={deck.cards} />
+          <SleeveGrid cards={deck.cards} onCardClick={setExpandedCard} />
         </div>
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginBottom: 16 }}>
           {([
             { key: 'real',    label: 'Real',    bg: '#FAFAFA', border: '#CCDDDD' },
-            { key: 'proxy',   label: 'Proxy',   bg: '#FFFAE5', border: '#D4B840' },
-            { key: 'ordered', label: 'Ordered', bg: '#E8F6FF', border: '#7ABCDC' },
+            { key: 'proxy',   label: 'Proxy',   bg: '#FFD700', border: '#C49A00' },
+            { key: 'ordered', label: 'Ordered', bg: '#1E78C4', border: '#1055A0' },
             { key: 'missing', label: 'Missing', bg: '#1A2030', border: 'rgba(200,200,200,0.3)' },
           ] as const).map(({ key, label, bg, border }) => (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>
@@ -304,6 +413,16 @@ export function DeckDetailPage() {
           </Link>
         </div>
       </div>
+
+      {/* Card expand modal */}
+      {expandedCard && (
+        <CardModal
+          name={expandedCard.name}
+          imageUrl={expandedCard.imageUrl}
+          status={expandedCard.status}
+          onClose={() => setExpandedCard(null)}
+        />
+      )}
     </div>
   )
 }

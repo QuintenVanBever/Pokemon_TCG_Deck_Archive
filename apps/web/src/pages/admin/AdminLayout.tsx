@@ -22,11 +22,20 @@ export { S as adminS }
 export function AdminLayout() {
   const path = useRouterState({ select: s => s.location.pathname })
 
-  const links = [
-    { to: '/admin/decks',   label: 'Decks' },
-    { to: '/admin/cards',   label: 'Cards' },
-    { to: '/admin/formats', label: 'Formats' },
-  ]
+  const navLink = (to: string, label: string) => {
+    const active = path.startsWith(to)
+    return (
+      <Link key={to} to={to} style={{
+        display: 'block', padding: '10px 16px', textDecoration: 'none',
+        fontSize: 13, fontWeight: 700,
+        color: active ? 'var(--yellow)' : 'rgba(255,255,255,0.7)',
+        background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
+        borderLeft: `3px solid ${active ? 'var(--yellow)' : 'transparent'}`,
+      }}>
+        {label}
+      </Link>
+    )
+  }
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
@@ -34,20 +43,13 @@ export function AdminLayout() {
         <div style={{ padding: '0 16px 14px', fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
           Admin
         </div>
-        {links.map(l => {
-          const active = path.startsWith(l.to)
-          return (
-            <Link key={l.to} to={l.to} style={{
-              display: 'block', padding: '10px 16px', textDecoration: 'none',
-              fontSize: 13, fontWeight: 700,
-              color: active ? 'var(--yellow)' : 'rgba(255,255,255,0.7)',
-              background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
-              borderLeft: `3px solid ${active ? 'var(--yellow)' : 'transparent'}`,
-            }}>
-              {l.label}
-            </Link>
-          )
-        })}
+        {navLink('/admin/decks', 'Decks')}
+        {navLink('/admin/cards', 'Cards')}
+        <div style={{ padding: '10px 16px 4px', marginTop: 6, fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)' }}>
+          Data
+        </div>
+        {navLink('/admin/formats', 'Formats')}
+        {navLink('/admin/eras', 'Blocks & Eras')}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '16px 0' }} />
         <Link to="/decks" style={{ display: 'block', padding: '8px 16px', textDecoration: 'none', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
           ← Public site
