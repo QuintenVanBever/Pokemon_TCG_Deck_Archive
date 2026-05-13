@@ -41,7 +41,12 @@ function resolveImageUrl(origin: string, r2Key: string | null, extUrl: string | 
 // ── Public routes ──────────────────────────────────────────────────────
 
 app.get('/api/formats', async c => {
-  const { results } = await c.env.DB.prepare('SELECT * FROM formats ORDER BY sort_order, id').all()
+  const { results } = await c.env.DB.prepare(`
+    SELECT f.*, eb.slug AS era_slug, eb.name AS era_name, eb.color AS era_color
+    FROM formats f
+    LEFT JOIN era_blocks eb ON eb.id = f.era_id
+    ORDER BY f.sort_order, f.id
+  `).all()
   return c.json({ data: results })
 })
 
@@ -71,6 +76,7 @@ app.get('/api/formats/:slug', async c => {
   })
 })
 
+// era-blocks: kept for backwards-compat (admin pages use this)
 app.get('/api/era-blocks', async c => {
   const { results } = await c.env.DB.prepare('SELECT * FROM era_blocks ORDER BY sort_order').all()
   return c.json({ data: results })
@@ -78,31 +84,30 @@ app.get('/api/era-blocks', async c => {
 
 app.get('/api/era-blocks/:id', async c => {
   const id = Number(c.req.param('id'))
-  const [block, eras] = await c.env.DB.batch([
+  const [block, legacyEras] = await c.env.DB.batch([
     c.env.DB.prepare('SELECT * FROM era_blocks WHERE id = ?').bind(id),
     c.env.DB.prepare('SELECT * FROM eras WHERE era_block_id = ? ORDER BY sort_order').bind(id),
   ])
   const data = block.results[0]
   if (!data) return c.json({ data: null }, 404)
-  return c.json({ data: { ...data, eras: eras.results } })
+  return c.json({ data: { ...data, eras: legacyEras.results } })
 })
 
+// /api/eras — now returns era_blocks (Eras in the new model)
 app.get('/api/eras', async c => {
-  const { results } = await c.env.DB.prepare(`
-    SELECT e.*, eb.name AS block_name, eb.slug AS block_slug, eb.color AS block_color
-    FROM eras e JOIN era_blocks eb ON eb.id = e.era_block_id
-    ORDER BY eb.sort_order, e.sort_order
-  `).all()
+  const { results } = await c.env.DB.prepare(
+    'SELECT id, slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks ORDER BY sort_order'
+  ).all()
   return c.json({ data: results })
 })
 
-app.get('/api/eras/:id', async c => {
-  const era = await c.env.DB.prepare(`
-    SELECT e.*, eb.name AS block_name, eb.slug AS block_slug, eb.color AS block_color
-    FROM eras e JOIN era_blocks eb ON eb.id = e.era_block_id
-    WHERE e.id = ?
-  `).bind(Number(c.req.param('id'))).first()
-  return c.json({ data: era ?? null })
+app.get('/api/eras/:slug', async c => {
+  const { slug } = c.req.param()
+  const era = await c.env.DB.prepare(
+    'SELECT id, slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks WHERE slug = ?'
+  ).bind(slug).first()
+  if (!era) return c.json({ data: null }, 404)
+  return c.json({ data: era })
 })
 
 app.get('/api/decks', async c => {
@@ -380,14 +385,14 @@ app.get('/api/admin/pokemontcg/sets', async c => {
 app.post('/api/admin/formats', async c => {
   const body = await c.req.json<any>()
   const { meta } = await c.env.DB.prepare(
-    'INSERT INTO formats (slug, name, regulation_marks, legal_set_ids, sort_order) VALUES (?, ?, ?, ?, ?)'
-  ).bind(body.slug, body.name, body.regulation_marks ?? null, body.legal_set_ids ?? null, body.sort_order ?? 0).run()
+    'INSERT INTO formats (slug, name, regulation_marks, legal_set_ids, sort_order, era_id, is_block) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(body.slug, body.name, body.regulation_marks ?? null, body.legal_set_ids ?? null, body.sort_order ?? 0, body.era_id ?? null, body.is_block ? 1 : 0).run()
   return c.json({ success: true, id: meta.last_row_id })
 })
 app.patch('/api/admin/formats/:id', async c => {
   const id = Number(c.req.param('id'))
   const body = await c.req.json<any>()
-  const fields = ['name', 'slug', 'regulation_marks', 'legal_set_ids', 'sort_order']
+  const fields = ['name', 'slug', 'regulation_marks', 'legal_set_ids', 'sort_order', 'era_id', 'is_block']
   const sets: string[] = []; const params: any[] = []
   for (const f of fields) { if (f in body) { sets.push(`${f} = ?`); params.push(body[f] ?? null) } }
   if (sets.length) { params.push(id); await c.env.DB.prepare(`UPDATE formats SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run() }
@@ -403,15 +408,15 @@ app.delete('/api/admin/formats/:id', async c => {
 app.post('/api/admin/era-blocks', async c => {
   const body = await c.req.json<any>()
   const { meta } = await c.env.DB.prepare(
-    'INSERT INTO era_blocks (slug, key, name, color, dark, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(body.slug, body.key, body.name, body.color, body.dark, body.sort_order ?? 0).run()
+    'INSERT INTO era_blocks (slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(body.slug, body.key, body.name, body.color, body.dark, body.sort_order ?? 0, body.ptcg_series ?? null, body.rules_primer ?? null, body.rules_json ?? null).run()
   return c.json({ success: true, id: meta.last_row_id })
 })
 app.patch('/api/admin/era-blocks/:id', async c => {
   const id = Number(c.req.param('id')); const body = await c.req.json<any>()
-  const fields = ['slug', 'key', 'name', 'color', 'dark', 'sort_order']
+  const fields = ['slug', 'key', 'name', 'color', 'dark', 'sort_order', 'ptcg_series', 'rules_primer', 'rules_json']
   const sets: string[] = []; const params: any[] = []
-  for (const f of fields) { if (f in body) { sets.push(`${f} = ?`); params.push(body[f]) } }
+  for (const f of fields) { if (f in body) { sets.push(`${f} = ?`); params.push(body[f] ?? null) } }
   if (sets.length) { params.push(id); await c.env.DB.prepare(`UPDATE era_blocks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run() }
   return c.json({ success: true })
 })

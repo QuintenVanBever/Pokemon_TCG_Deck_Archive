@@ -29,6 +29,9 @@ export interface EraBlock {
   color: string
   dark: string
   sort_order: number
+  ptcg_series:  string | null
+  rules_primer: string | null
+  rules_json:   string | null
 }
 
 export interface AdminCard {
@@ -81,6 +84,11 @@ export interface Format {
   regulation_marks: string | null  // JSON array e.g. '["E","F","G"]'
   legal_set_ids:    string | null  // JSON array e.g. '["sv1","sv2"]'
   sort_order:       number
+  era_id:           number | null
+  is_block:         number         // 0 | 1
+  era_slug:         string | null
+  era_name:         string | null
+  era_color:        string | null
 }
 
 export interface StatsOverview {
@@ -148,6 +156,19 @@ export async function fetchBuylist(params?: {
 export async function fetchEraBlocks(): Promise<EraBlock[]> {
   const res  = await fetch(`${BASE}/api/era-blocks`)
   const json = await res.json() as { data: EraBlock[] }
+  return json.data
+}
+
+export async function fetchEras(): Promise<EraBlock[]> {
+  const res  = await fetch(`${BASE}/api/eras`)
+  const json = await res.json() as { data: EraBlock[] }
+  return json.data
+}
+
+export async function fetchEra(slug: string): Promise<EraBlock | null> {
+  const res  = await fetch(`${BASE}/api/eras/${slug}`)
+  if (res.status === 404) return null
+  const json = await res.json() as { data: EraBlock }
   return json.data
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { adminS as S } from './AdminLayout'
-import { fetchFormats, BASE } from '../../lib/api'
-import type { Format } from '../../lib/api'
+import { fetchFormats, fetchEraBlocks, BASE } from '../../lib/api'
+import type { Format, EraBlock } from '../../lib/api'
 
 interface PtcgSet {
   id: string
@@ -15,6 +15,8 @@ type FormatForm = {
   name: string
   slug: string
   sort_order: number
+  era_id: number | null
+  is_block: boolean
   regulation_marks: string[]
   legal_set_ids: string[]
 }
@@ -23,28 +25,32 @@ const MARKS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const emptyForm = (): FormatForm => ({
-  name: '', slug: '', sort_order: 0, regulation_marks: [], legal_set_ids: [],
+  name: '', slug: '', sort_order: 0, era_id: null, is_block: false,
+  regulation_marks: [], legal_set_ids: [],
 })
 
 const fromFormat = (f: Format): FormatForm => ({
   name: f.name,
   slug: f.slug,
   sort_order: f.sort_order,
+  era_id: f.era_id ?? null,
+  is_block: !!f.is_block,
   regulation_marks: f.regulation_marks ? JSON.parse(f.regulation_marks) : [],
-  legal_set_ids: f.legal_set_ids ? JSON.parse(f.legal_set_ids) : [],
+  legal_set_ids:    f.legal_set_ids    ? JSON.parse(f.legal_set_ids)    : [],
 })
 
 export function AdminFormatsPage() {
-  const [formats, setFormats] = useState<Format[]>([])
-  const [form, setForm] = useState<FormatForm | null>(null)
-  const [editId, setEditId] = useState<number | null>(null)
+  const [formats,  setFormats]  = useState<Format[]>([])
+  const [eras,     setEras]     = useState<EraBlock[]>([])
+  const [form,     setForm]     = useState<FormatForm | null>(null)
+  const [editId,   setEditId]   = useState<number | null>(null)
 
   // Set browser state
-  const [allSets, setAllSets] = useState<PtcgSet[]>([])
-  const [setSearch, setSetSearch] = useState('')
+  const [allSets,     setAllSets]     = useState<PtcgSet[]>([])
+  const [setSearch,   setSetSearch]   = useState('')
   const [loadingSets, setLoadingSets] = useState(false)
 
-  const load = () => fetchFormats().then(setFormats)
+  const load = () => Promise.all([fetchFormats(), fetchEraBlocks()]).then(([f, e]) => { setFormats(f); setEras(e) })
   useEffect(() => { load() }, [])
 
   const loadSets = async () => {
@@ -72,6 +78,8 @@ export function AdminFormatsPage() {
       name:             form.name,
       slug:             form.slug,
       sort_order:       form.sort_order,
+      era_id:           form.era_id,
+      is_block:         form.is_block ? 1 : 0,
       regulation_marks: form.regulation_marks.length ? JSON.stringify(form.regulation_marks) : null,
       legal_set_ids:    form.legal_set_ids.length    ? JSON.stringify(form.legal_set_ids)    : null,
     }
@@ -107,12 +115,22 @@ export function AdminFormatsPage() {
       return { ...f, legal_set_ids: has ? f.legal_set_ids.filter(s => s !== setId) : [...f.legal_set_ids, setId] }
     })
 
+  // Derive the selected era's ptcg_series for auto-filtering
+  const selectedEra = form?.era_id ? eras.find(e => e.id === form.era_id) : null
+  const seriesFilter = form?.is_block && selectedEra?.ptcg_series ? selectedEra.ptcg_series : null
+
   const setQ = setSearch.toLowerCase()
   const filteredSets = allSets
-    .filter(s => !setQ || s.name.toLowerCase().includes(setQ) || s.series.toLowerCase().includes(setQ) || s.id.toLowerCase().includes(setQ))
-    .slice(0, 30)
+    .filter(s => {
+      if (seriesFilter && s.series !== seriesFilter) return false
+      if (setQ) return s.name.toLowerCase().includes(setQ) || s.series.toLowerCase().includes(setQ) || s.id.toLowerCase().includes(setQ)
+      return true
+    })
+    .slice(0, 50)
 
   const setMap = Object.fromEntries(allSets.map(s => [s.id, s]))
+
+  const eraName = (eraId: number | null) => eras.find(e => e.id === eraId)?.name ?? '—'
 
   return (
     <div style={S.page}>
@@ -126,7 +144,7 @@ export function AdminFormatsPage() {
           </div>
 
           {/* Basic fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px', gap: 10, marginBottom: 14 }}>
             <div style={S.field}>
               <label style={S.label}>Name</label>
               <input
@@ -137,16 +155,54 @@ export function AdminFormatsPage() {
                   if (!editId) n.slug = slugify(e.target.value)
                   return n
                 })}
-                placeholder="Modified HGSS-on"
+                placeholder="HGSS Block"
               />
             </div>
             <div style={S.field}>
               <label style={S.label}>Slug</label>
-              <input style={{ ...S.input, fontFamily: 'monospace' }} value={form.slug} onChange={e => setForm(f => ({ ...f!, slug: e.target.value }))} placeholder="modified-hgss" />
+              <input style={{ ...S.input, fontFamily: 'monospace' }} value={form.slug} onChange={e => setForm(f => ({ ...f!, slug: e.target.value }))} placeholder="hgss-block" />
             </div>
             <div style={S.field}>
               <label style={S.label}>Sort order</label>
               <input style={S.input} type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f!, sort_order: Number(e.target.value) }))} />
+            </div>
+          </div>
+
+          {/* Era + is_block row */}
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 20, padding: '12px 14px', background: '#F5F8FF', border: '1.5px solid #C7D2FE' }}>
+            <div style={S.field}>
+              <label style={S.label}>Era</label>
+              <select
+                style={S.select}
+                value={form.era_id ?? ''}
+                onChange={e => setForm(f => ({ ...f!, era_id: e.target.value ? Number(e.target.value) : null }))}
+              >
+                <option value="">— none —</option>
+                {eras.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={S.label}>Block format?</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={form.is_block}
+                  onChange={e => setForm(f => ({ ...f!, is_block: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 700, color: form.is_block ? 'var(--navy)' : '#aaa' }}>
+                  Is Block
+                </span>
+              </label>
+              {form.is_block && selectedEra && (
+                <span style={{ fontSize: 11, color: '#5B9BD5' }}>
+                  Set browser filtered to {selectedEra.ptcg_series ?? selectedEra.name}
+                </span>
+              )}
+              {form.is_block && !selectedEra && (
+                <span style={{ fontSize: 11, color: '#CC8800' }}>Select an era above to auto-filter sets</span>
+              )}
             </div>
           </div>
 
@@ -165,7 +221,7 @@ export function AdminFormatsPage() {
                     onClick={() => toggleMark(m)}
                     style={{
                       width: 38, height: 38,
-                      fontFamily: 'var(--font-d)', fontSize: 15, fontWeight: 900,
+                      fontFamily: 'var(--font-d)', fontSize: 15,
                       background: active ? 'var(--navy)' : '#F0F2F5',
                       color:      active ? 'var(--yellow)' : '#888',
                       border:     active ? '2px solid var(--navy)' : '2px solid #D0D5DD',
@@ -177,21 +233,19 @@ export function AdminFormatsPage() {
                 )
               })}
             </div>
-            {form.regulation_marks.length > 0 && (
-              <div style={{ marginTop: 6, fontSize: 11, color: '#888' }}>
-                Cards with marks <strong>{form.regulation_marks.join(', ')}</strong> will be legal in this format
-              </div>
-            )}
           </div>
 
           {/* Legal sets */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#555', marginBottom: 6 }}>
               Legal Sets
-              <span style={{ fontWeight: 400, color: '#aaa', marginLeft: 8 }}>For older modified formats — specific sets allowed in this format</span>
+              {seriesFilter && (
+                <span style={{ fontWeight: 400, color: '#5B9BD5', marginLeft: 8 }}>
+                  Auto-filtered to {seriesFilter}
+                </span>
+              )}
             </div>
 
-            {/* Selected sets chips */}
             {form.legal_set_ids.length > 0 && (
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
                 {form.legal_set_ids.map(sid => {
@@ -207,12 +261,11 @@ export function AdminFormatsPage() {
               </div>
             )}
 
-            {/* Set browser */}
             <div style={{ border: '1.5px solid #D0D5DD' }}>
               <div style={{ padding: '8px 10px', borderBottom: '1px solid #E8ECF0', background: '#F8F9FB' }}>
                 <input
                   style={{ ...S.input, width: '100%' }}
-                  placeholder="Search sets by name, series, or ID…"
+                  placeholder={seriesFilter ? `Search in ${seriesFilter}…` : 'Search sets by name, series, or ID…'}
                   value={setSearch}
                   onChange={e => setSetSearch(e.target.value)}
                 />
@@ -267,9 +320,9 @@ export function AdminFormatsPage() {
                       )}
                     </tbody>
                   </table>
-                  {filteredSets.length === 30 && (
+                  {filteredSets.length === 50 && (
                     <div style={{ padding: '6px 12px', fontSize: 11, color: '#aaa', borderTop: '1px solid #F0F2F5' }}>
-                      Showing first 30 — narrow your search to find more
+                      Showing first 50 — narrow your search to see more
                     </div>
                   )}
                 </div>
@@ -296,25 +349,41 @@ export function AdminFormatsPage() {
               <th style={S.th}>#</th>
               <th style={S.th}>Name</th>
               <th style={{ ...S.th, fontFamily: 'monospace' }}>Slug</th>
-              <th style={S.th}>Regulation Marks</th>
+              <th style={S.th}>Era</th>
+              <th style={S.th}>Type</th>
+              <th style={S.th}>Reg. Marks</th>
               <th style={S.th}>Legal Sets</th>
               <th style={S.th}></th>
             </tr>
           </thead>
           <tbody>
             {formats.map(f => {
-              const marks: string[] = f.regulation_marks ? JSON.parse(f.regulation_marks) : []
-              const setIds: string[] = f.legal_set_ids ? JSON.parse(f.legal_set_ids) : []
+              const marks: string[]  = f.regulation_marks ? JSON.parse(f.regulation_marks) : []
+              const setIds: string[] = f.legal_set_ids    ? JSON.parse(f.legal_set_ids)    : []
               return (
                 <tr key={f.id}>
                   <td style={{ ...S.td, color: '#aaa', fontSize: 11 }}>{f.id}</td>
                   <td style={{ ...S.td, fontWeight: 700 }}>{f.name}</td>
                   <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>{f.slug}</td>
+                  <td style={{ ...S.td, fontSize: 12 }}>
+                    {f.era_id ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {f.era_color && <span style={{ width: 8, height: 8, background: f.era_color, display: 'inline-block' }} />}
+                        {eraName(f.era_id)}
+                      </span>
+                    ) : <span style={{ color: '#ccc' }}>—</span>}
+                  </td>
+                  <td style={S.td}>
+                    {f.is_block
+                      ? <span style={{ background: '#EEF2FF', border: '1px solid #C7D2FE', color: '#3730A3', padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>Block</span>
+                      : <span style={{ color: '#aaa', fontSize: 11 }}>Format</span>
+                    }
+                  </td>
                   <td style={S.td}>
                     {marks.length > 0 ? (
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 3 }}>
                         {marks.map(m => (
-                          <span key={m} style={{ display: 'inline-block', background: 'var(--navy)', color: 'var(--yellow)', padding: '1px 7px', fontSize: 11, fontFamily: 'var(--font-d)', fontWeight: 900 }}>{m}</span>
+                          <span key={m} style={{ display: 'inline-block', background: 'var(--navy)', color: 'var(--yellow)', padding: '1px 6px', fontSize: 11, fontFamily: 'var(--font-d)', fontWeight: 900 }}>{m}</span>
                         ))}
                       </div>
                     ) : <span style={{ color: '#ccc' }}>—</span>}
@@ -333,7 +402,7 @@ export function AdminFormatsPage() {
               )
             })}
             {formats.length === 0 && (
-              <tr><td colSpan={6} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>No formats yet</td></tr>
+              <tr><td colSpan={8} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>No formats yet</td></tr>
             )}
           </tbody>
         </table>
