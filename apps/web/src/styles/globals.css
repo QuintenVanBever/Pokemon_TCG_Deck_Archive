@@ -130,3 +130,42 @@ img { display: block; max-width: 100%; }
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE UTILITIES
+   ═══════════════════════════════════════════════════ */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 768px) {
+  /* HeadlineGrid in StatsPage */
+  .grid-4-to-2 { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Filter strip: scroll instead of overflow */
+  .filter-strip { padding: 0 0.75rem !important; overflow-x: auto; flex-wrap: nowrap !important; }
+
+  /* DeckDetail: stack left+right panels */
+  .deck-detail-layout {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .deck-detail-sidebar {
+    height: 240px !important;
+    overflow-y: auto !important;
+    border-right: none !important;
+    border-bottom: 3px solid var(--yellow) !important;
+  }
+  .deck-detail-main {
+    overflow-y: visible !important;
+  }
+
+  /* Navigation: hide wordmark on small screens */
+  .nav-wordmark { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .grid-4-to-2 { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Sleeve grid: 6-wide on very small screens */
+  .sleeve-grid { grid-template-columns: repeat(6, 1fr) !important; }
+}

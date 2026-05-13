@@ -53,6 +53,7 @@ export interface DeckCard {
   deck_card_id:      number
   fan_slot:          number | null
   name:              string
+  pokemontcg_id:     string | null
   supertype:         string  // 'Pokémon' | 'Trainer' | 'Energy'
   intended_quantity: number
   qty_real:          number

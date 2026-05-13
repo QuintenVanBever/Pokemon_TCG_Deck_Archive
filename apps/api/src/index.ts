@@ -197,6 +197,7 @@ app.get('/api/decks/:slug', async c => {
     c.env.DB.prepare(`
       SELECT dc.id AS deck_card_id, dc.fan_slot,
              COALESCE(c.display_name, c.name) AS name,
+             c.pokemontcg_id,
              c.supertype,
              dc.intended_quantity, dc.qty_real, dc.qty_proxy, dc.qty_missing, dc.qty_ordered,
              c.image_r2_key, c.image_ext_url
@@ -243,6 +244,7 @@ app.get('/api/decks/:slug', async c => {
         deck_card_id:      r.deck_card_id,
         fan_slot:          r.fan_slot ?? null,
         name:              r.name,
+        pokemontcg_id:     r.pokemontcg_id ?? null,
         supertype:         r.supertype,
         intended_quantity: r.intended_quantity,
         qty_real:          r.qty_real,

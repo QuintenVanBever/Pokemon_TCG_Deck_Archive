@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams } from '@tanstack/react-router'
-import { ENERGY_META, STATUS_COLORS, BAR_COLORS, deriveDeckStatus } from '../data/decks'
+import { ENERGY_META, BAR_COLORS, deriveDeckStatus } from '../data/decks'
 import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api'
 import type { EnergyType } from '../data/decks'
 
@@ -74,8 +74,11 @@ function StatCounter({ value, label, type }: { value: number; label: string; typ
 
 type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered'
 
-function Sleeve({ name, status, imageUrl, onClick }: { name: string; status: SlotStatus; imageUrl: string | null; onClick?: () => void }) {
+function Sleeve({ name, pokemontcgId, status, imageUrl, onClick }: {
+  name: string; pokemontcgId?: string | null; status: SlotStatus; imageUrl: string | null; onClick?: () => void
+}) {
   const [hovered, setHovered] = useState(false)
+  const isCardBack = !imageUrl
   const src = imageUrl ?? CARD_BACK
 
   return (
@@ -95,35 +98,56 @@ function Sleeve({ name, status, imageUrl, onClick }: { name: string; status: Slo
         alt={name}
         style={{
           width: '100%', height: '100%', display: 'block', objectFit: 'cover',
-          filter: status === 'missing' ? 'grayscale(100%) brightness(0.45)' : 'none',
+          filter: status === 'missing' ? 'grayscale(100%) brightness(0.6)' : 'none',
         }}
       />
 
-      {/* Proxy: construction tape diagonal stripes + label */}
-      {status === 'proxy' && (
-        <>
+      {/* Card back: show name + pokemontcg id as text overlay */}
+      {isCardBack && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.45)', padding: '4px 3px', gap: 2,
+        }}>
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'repeating-linear-gradient(-45deg, rgba(255,204,0,0.55) 0px, rgba(255,204,0,0.55) 5px, rgba(0,0,0,0.5) 5px, rgba(0,0,0,0.5) 10px)',
-          }} />
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            background: 'rgba(0,0,0,0.78)', color: '#FFD700',
-            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
-          }}>PROXY</div>
-        </>
+            fontSize: 5.5, fontWeight: 800, textAlign: 'center', color: '#fff',
+            lineHeight: 1.25, wordBreak: 'break-word',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+          }}>{name}</div>
+          {pokemontcgId && (
+            <div style={{
+              fontSize: 4.5, fontWeight: 700, color: 'rgba(255,255,255,0.6)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.8)', textAlign: 'center',
+            }}>{pokemontcgId}</div>
+          )}
+        </div>
       )}
 
-      {/* Missing: grayscale filter on img + banner */}
+      {/* Proxy: diagonal-stripe strip across the middle + label */}
+      {status === 'proxy' && (
+        <div style={{
+          position: 'absolute', top: '28%', left: 0, right: 0, height: '42%',
+          background: 'repeating-linear-gradient(-45deg, rgba(255,204,0,0.38) 0px, rgba(255,204,0,0.38) 5px, rgba(0,0,0,0.38) 5px, rgba(0,0,0,0.38) 10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'rgba(0,0,0,0.72)', color: '#FFD700',
+            fontSize: 6, fontWeight: 900, letterSpacing: '0.16em',
+            padding: '2px 5px',
+          }}>PROXY</div>
+        </div>
+      )}
+
+      {/* Missing: grayscale filter on img (above) + banner higher up */}
       {status === 'missing' && (
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          background: 'rgba(0,0,0,0.85)', color: '#FF6666',
-          fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
+          position: 'absolute', bottom: '20%', left: 0, right: 0,
+          background: 'rgba(0,0,0,0.78)', color: '#FF6666',
+          fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
         }}>MISSING</div>
       )}
 
-      {/* Ordered: strong blue tint + ◎ + label */}
+      {/* Ordered: blue tint + ◎ + label higher up */}
       {status === 'ordered' && (
         <>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,120,196,0.45)' }} />
@@ -134,9 +158,9 @@ function Sleeve({ name, status, imageUrl, onClick }: { name: string; status: Slo
             textShadow: '0 0 4px rgba(0,0,0,0.6)',
           }}>◎</span>
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
+            position: 'absolute', bottom: '20%', left: 0, right: 0,
             background: 'rgba(20,90,170,0.85)', color: '#CCE8FF',
-            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '2px 0', letterSpacing: '0.14em',
+            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
           }}>ORDERED</div>
         </>
       )}
@@ -156,22 +180,26 @@ function Sleeve({ name, status, imageUrl, onClick }: { name: string; status: Slo
 
 /* ── Sleeve grid ─────────────────────────────────────*/
 
-function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (slot: { name: string; imageUrl: string | null; status: SlotStatus }) => void }) {
-  const slots: Array<{ name: string; status: SlotStatus; imageUrl: string | null }> = []
+type SlotData = { name: string; pokemontcgId: string | null; status: SlotStatus; imageUrl: string | null }
+
+function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (slot: SlotData) => void }) {
+  const slots: SlotData[] = []
   for (const card of cards) {
-    for (let i = 0; i < card.qty_real;    i++) slots.push({ name: card.name, status: 'real',    imageUrl: card.image_url })
-    for (let i = 0; i < card.qty_proxy;   i++) slots.push({ name: card.name, status: 'proxy',   imageUrl: card.image_url })
-    for (let i = 0; i < card.qty_ordered; i++) slots.push({ name: card.name, status: 'ordered', imageUrl: card.image_url })
-    for (let i = 0; i < card.qty_missing; i++) slots.push({ name: card.name, status: 'missing', imageUrl: card.image_url })
+    const base = { name: card.name, pokemontcgId: card.pokemontcg_id ?? null, imageUrl: card.image_url }
+    for (let i = 0; i < card.qty_real;    i++) slots.push({ ...base, status: 'real' })
+    for (let i = 0; i < card.qty_proxy;   i++) slots.push({ ...base, status: 'proxy' })
+    for (let i = 0; i < card.qty_ordered; i++) slots.push({ ...base, status: 'ordered' })
+    for (let i = 0; i < card.qty_missing; i++) slots.push({ ...base, status: 'missing' })
   }
-  while (slots.length < 60) slots.push({ name: '?', status: 'real', imageUrl: null })
+  while (slots.length < 60) slots.push({ name: '?', pokemontcgId: null, status: 'real', imageUrl: null })
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
+    <div className="sleeve-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
       {slots.slice(0, 60).map((slot, i) => (
         <Sleeve
           key={i}
           name={slot.name}
+          pokemontcgId={slot.pokemontcgId}
           status={slot.status}
           imageUrl={slot.imageUrl}
           onClick={() => onCardClick(slot)}
@@ -183,7 +211,10 @@ function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (s
 
 /* ── Card expand modal ───────────────────────────────*/
 
-function CardModal({ name, imageUrl, status, onClose }: { name: string; imageUrl: string | null; status: SlotStatus; onClose: () => void }) {
+function CardModal({ name, pokemontcgId, imageUrl, status, onClose }: {
+  name: string; pokemontcgId?: string | null; imageUrl: string | null; status: SlotStatus; onClose: () => void
+}) {
+  const isCardBack = !imageUrl
   const src = imageUrl ?? CARD_BACK
   const statusLabel: Record<SlotStatus, string> = { real: 'Real', proxy: 'Proxy', missing: 'Missing', ordered: 'Ordered' }
   const statusColor: Record<SlotStatus, string> = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' }
@@ -205,15 +236,28 @@ function CardModal({ name, imageUrl, status, onClose }: { name: string; imageUrl
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
         }}
       >
-        <img
-          src={src}
-          alt={name}
-          style={{
-            width: '100%', display: 'block',
-            aspectRatio: '63/88', objectFit: 'cover',
-            filter: status === 'missing' ? 'grayscale(100%) brightness(0.45)' : 'none',
-          }}
-        />
+        <div style={{ position: 'relative', aspectRatio: '63/88' }}>
+          <img
+            src={src}
+            alt={name}
+            style={{
+              width: '100%', height: '100%', display: 'block', objectFit: 'cover',
+              filter: status === 'missing' ? 'grayscale(100%) brightness(0.6)' : 'none',
+            }}
+          />
+          {isCardBack && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.45)', padding: '12px 10px', gap: 6,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, textAlign: 'center', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{name}</div>
+              {pokemontcgId && (
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{pokemontcgId}</div>
+              )}
+            </div>
+          )}
+        </div>
         <div style={{ padding: '8px 6px 6px', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-d)', fontSize: 14, color: '#fff', marginBottom: 2 }}>{name}</div>
           <div style={{ fontSize: 11, fontWeight: 700, color: statusColor[status] }}>{statusLabel[status]}</div>
@@ -266,7 +310,7 @@ export function DeckDetailPage() {
   const [allDecks, setAll]    = useState<DeckSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedEras, setExpandedEras] = useState<Record<string, boolean>>({})
-  const [expandedCard, setExpandedCard] = useState<{ name: string; imageUrl: string | null; status: SlotStatus } | null>(null)
+  const [expandedCard, setExpandedCard] = useState<SlotData | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -312,10 +356,10 @@ export function DeckDetailPage() {
     .map(s => ({ key: s, flex: counts[s], color: BAR_COLORS[s] }))
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
+    <div className="deck-detail-layout" style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
 
       {/* ── LEFT PANEL ─────────────────────────────── */}
-      <div style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
+      <div className="deck-detail-sidebar" style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
         {Object.entries(byEra).map(([eraSlug, decks]) => {
           const isExpanded = expandedEras[eraSlug] ?? false
           return (
@@ -343,7 +387,7 @@ export function DeckDetailPage() {
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────── */}
-      <div style={{ overflowY: 'auto', padding: '24px 28px 32px', background: 'var(--sky-l)' }}>
+      <div className="deck-detail-main" style={{ overflowY: 'auto', padding: '24px 28px 32px', background: 'var(--sky-l)' }}>
         {/* Deck header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ marginBottom: 8 }}>
@@ -404,6 +448,21 @@ export function DeckDetailPage() {
           ))}
         </div>
 
+        {/* Deck description */}
+        {deck.primer_md && (
+          <div style={{
+            background: '#FFFFFF', padding: '16px 20px',
+            boxShadow: '0 4px 20px rgba(26,58,92,0.1)', marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 10 }}>
+              Deck Description
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              {deck.primer_md}
+            </div>
+          </div>
+        )}
+
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 8 }}>
           <ActionBtn primary>Generate Proxy PDF</ActionBtn>
@@ -418,6 +477,7 @@ export function DeckDetailPage() {
       {expandedCard && (
         <CardModal
           name={expandedCard.name}
+          pokemontcgId={expandedCard.pokemontcgId}
           imageUrl={expandedCard.imageUrl}
           status={expandedCard.status}
           onClose={() => setExpandedCard(null)}

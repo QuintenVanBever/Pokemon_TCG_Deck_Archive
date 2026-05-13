@@ -8,15 +8,20 @@ const ENERGY_TYPES = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'F
 
 function QtyCell({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <td style={{ ...S.td, width: 60 }}>
+    <td style={{ ...S.td, width: 72 }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
         <label style={{ ...S.label, margin: 0, fontSize: 9 }}>{label}</label>
-        <input
-          type="number" min={0} max={99}
-          value={value}
-          onChange={e => onChange(Math.max(0, Number(e.target.value)))}
-          style={{ ...S.input, width: 48, textAlign: 'center', padding: '4px 2px' }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <button
+            onClick={() => onChange(Math.max(0, value - 1))}
+            style={{ width: 20, height: 22, border: '1.5px solid #D0D5DD', background: '#F5F7FA', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >−</button>
+          <span style={{ minWidth: 18, textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-b)' }}>{value}</span>
+          <button
+            onClick={() => onChange(Math.min(99, value + 1))}
+            style={{ width: 20, height: 22, border: '1.5px solid #D0D5DD', background: '#F5F7FA', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >+</button>
+        </div>
       </div>
     </td>
   )
@@ -49,6 +54,7 @@ export function AdminDeckEditPage() {
     if (!d) return
     setDeck(d)
     setMeta({ name: d.name, slug: d.slug, era_block_id: d.era_block_id, energy_type: d.energy_type, intended_size: d.intended_size, primer_md: d.primer_md ?? '', format_id: d.format_id })
+    setSearchBlock(d.era_slug)
     const initial: typeof qtys = {}
     const initialFan: Record<number, number | null> = {}
     for (const c of d.cards) {
@@ -199,7 +205,7 @@ export function AdminDeckEditPage() {
           </div>
         </div>
         <div style={S.field}>
-          <label style={S.label}>Primer (Markdown)</label>
+          <label style={S.label}>Deck Description (Markdown)</label>
           <textarea style={{ ...S.input, height: 80, resize: 'vertical', fontFamily: 'monospace' }} value={meta.primer_md} onChange={e => setMeta(m => ({ ...m, primer_md: e.target.value }))} />
         </div>
         <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>

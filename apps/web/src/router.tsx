@@ -16,6 +16,7 @@ import { AdminFormatsPage } from './pages/admin/AdminFormatsPage'
 import { AdminCardsPage } from './pages/admin/AdminCardsPage'
 import { AdminDecksPage } from './pages/admin/AdminDecksPage'
 import { AdminDeckEditPage } from './pages/admin/AdminDeckEditPage'
+import { AdminErasPage } from './pages/admin/AdminErasPage'
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -100,6 +101,12 @@ const adminDeckEditRoute = createRoute({
   component: AdminDeckEditPage,
 })
 
+const adminErasRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/eras',
+  component: AdminErasPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   decksRoute,
@@ -113,6 +120,7 @@ const routeTree = rootRoute.addChildren([
     adminCardsRoute,
     adminDecksRoute,
     adminDeckEditRoute,
+    adminErasRoute,
   ]),
 ])
 

@@ -39,10 +39,9 @@ export function Navigation() {
         }}>
           DA
         </div>
-        <span style={{
+        <span className="nav-wordmark" style={{
           fontFamily: 'var(--font-d)', fontSize: '1.2rem',
           color: 'var(--yellow)',
-          textShadow: '2px 2px 0 var(--yellow-d)',
           letterSpacing: '0.3px',
         }}>
           Deck{' '}

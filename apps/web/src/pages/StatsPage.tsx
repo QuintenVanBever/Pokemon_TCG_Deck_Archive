@@ -25,7 +25,7 @@ function HeadlineGrid({ stats, decks }: { stats: StatsOverview; decks: DeckSumma
   const wip = decks.filter(d => deriveDeckStatus(d.counts) === 'wip').length
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, background: 'rgba(26,58,92,0.08)', marginBottom: '1.75rem' }}>
+    <div className="grid-4-to-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2, background: 'rgba(26,58,92,0.08)', marginBottom: '1.75rem' }}>
       {[
         { val: stats.totalDecks,   label: 'Total Decks',   sub: `${playable} playable · ${wip} WIP`,  color: 'var(--navy)'    },
         { val: stats.totalReal,    label: 'Cards Real',    sub: 'across all decks',                    color: 'var(--real)'    },
@@ -47,6 +47,7 @@ function HeadlineGrid({ stats, decks }: { stats: StatsOverview; decks: DeckSumma
 function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
   return (
     <Panel>
+      <div className="scroll-x">
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
         <thead>
           <tr>
@@ -82,6 +83,7 @@ function PerDeckTab({ decks }: { decks: DeckSummary[] }) {
           })}
         </tbody>
       </table>
+      </div>
     </Panel>
   )
 }
@@ -274,6 +276,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
           No cards to acquire for this filter — looking good!
         </div>
       ) : (
+        <div className="scroll-x">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>
             <tr>
@@ -312,6 +315,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </Panel>
   )

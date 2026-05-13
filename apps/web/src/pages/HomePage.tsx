@@ -202,7 +202,7 @@ function FilterStrip({
   onSelect: (key: string) => void
 }) {
   return (
-    <div style={{
+    <div className="filter-strip" style={{
       background: 'var(--navy-deep)',
       height: 38, display: 'flex', alignItems: 'stretch',
       padding: '0 1.5rem', gap: 2,
@@ -273,7 +273,8 @@ function StatusFooter({ decks }: { decks: DeckSummary[] }) {
       background: 'var(--navy)',
       borderTop: '3px solid var(--yellow)',
       display: 'flex', alignItems: 'center',
-      padding: '0 2rem', gap: '1.25rem',
+      padding: '0 1rem', gap: '1rem',
+      overflowX: 'auto',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
         <span style={{ width: 11, height: 11, background: 'var(--yellow)', display: 'block' }} />

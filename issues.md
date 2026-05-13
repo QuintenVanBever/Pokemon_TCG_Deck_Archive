@@ -1,64 +1,60 @@
-# Issues after user testing
-I used the user testing document to gather these issues, These will have to be fixed in a future version. Check all the issues i have mentioned here and provide me a plan we can use to fix them.
+# Issues
+The next set of issues and features. Use the same logic as before when we did the issues.md file which is now located in /archive.
 
-## Copywriting
-* Capitalize all references to energy types.
-* Refer to type instead of "energy type"
-* The navigation refers to "buy list" and has the path "stats". I would like the header to be updated to say Stats.
-* Era and Block are both used, stick to 1, I prefer block 
+in /screenshots, you will find pictures taken from the website to display the issues mentioned below.
 
-## Styling/UX
-* Get the backside of a pokemon card to use as a placeholder if the card does not have an image
-* Not all type filters have a colored square next to it, make it consistent
-* The color of the darkness type is too close to psychic, make it darker
-* When editing cards in a deck, the layout shifts to the left to make space for the save button. move the delete and save to the right
-    * Add confirmation method on the deletion. Maybe require an extra click or something, talk me through options we could have here
-    * The tables don't match up either between card tpes, they should be aligned horizontally as well
-    * The cards are squished and barely visible, fix the ratio and allow the user to hover over the card image to view the image better
-* On the deck detail page, the missing cards overlay are too dark,
-* The ordered overlay is too light, not really visible
-* Both the missing and proxy are using 2 different colors in the counts and the top and in the overlay.
-    * For the overlay of proxy cards, I would like your thoughts of a "construction tape" with proxy written on it
-    * for the missing cards, i would gray them out and put a small black banner with "missing" over them. any thoughts on this?
-* There are no hover effects on any button, a very light feedback to the user would be nice
-* No feedback to the user when creating an invalid deck in /admin/decks
-* No feedback when the user tries to add a duplicate card in a deck
-* No ordered count on /admin/decks
-    * Would be nice to show somewhere
-* Hovering over a card feature in deck detail page barely makes the card readable, keep the hover but add a click that expands/shrinks the card to make it more readable 
-
-
-## Cards
-* Unown N is being used for N the trainer card. N the supporter card is a special case itself, provide possible solutions for handling the card "N"
-* Many cards are the wrong card of the pokemon, often the first instance was found, this is good, I will fix this later, but provide options to have some guardrails in the future
-* I want to be able to sort the tables on the stats page
+## UX/Styling
+* the previously implemented proxy and missing overlay is too dark. You are not able to see the card behind well.
+    * Make the proxy overlay a strip instead of a full card overlay
+    * Lower the opacity a bit more to make it clearer
+    * the missing/proxy text should be a bit higher and the strip can be a bit bigger too 
+* If the card has the placeholder back of the card, add the show the display name + ptcg api id over the card
+* The dropshadow in the title is making it hard to read
+    * /screenshots/logo_dropshadow_issue.png
+* Let's double check responsiveness on all pages
+* There is no favicon, I like the DA used as the temporary logo for now to be a favicon as well
 
 ## Features
-* Add all types to the type filters by default, even if there are no decks to be able to displayed
-* Add a live count in the edit deck mode, So i know where I am going over.
-* In the deck detail page, let's make all formats close if we are not looking at a deck of this format. make this a toggle that we can open/close this
-* Put the format of which we are looking at a deck from at the top
-* The stats page "Aggregated buy list", has a filter for era, I also want to have a filter on sets.
-    * Remove the "era" column from the table
-    * Make the era filter a dropdown
-* Custom cards are missing from the stats page
-* Deleting a card gives a 500 on /admin/cards
-    * Show a custom popup that tells me in what decks this card is in
-    * Allow me to delete the card even if it is in decks, after confirming on the previously mentioned popup. This should delete all the cards in the decks as well.
-    * If a card is not in a deck show the same popup but mention that this card is not in any deck
-* Add basic energies that are format and era agnostic, so they can always easily be added
-* Card search to pokemontcgapi is broken. Fix and expand on the search. Here are the docs: https://docs.pokemontcg.io/
-    * Add a set search so i can multiple cards from a set
-* You are able to create a blank card with no name, this should not be the case
-* In admin, formats and eras/blocks should be together 
-* Allow to edit the era/block on decks in /admin/decks/<slug>
-* The filter on the cards does not work for the Blocks, this should be added in /admin/decks/<slug>
-* Deck guardrails do not work for maximum count of a card
-
-## Future features
+* The card search feature in admin/decks/<slug> is wonky design wise / does not convey what I wanted.
+    * The filters should automatically be set by the format or block the deck is in, allowing users to overwrite with the existing "block"
 * Possibility to have Multiple cards to be counted as 1 card in the stats page
     * Cards can have multiple prints
     * Use Ultra ball here for testing as this is a very prevelant card
     * I want the cards the be able to be split and aggregated, this can be a toggle on the table, something like "split card versions"
 * Card counters on the deck edit page are not as nice as I want
+* Add a password to be able to reach the admin pages, no need for a full account, just a securely stored password to keep the admin away from people who do not need to be there
+* the formats tab is both uneditable and still not working well, let's discuss on how to fix this
+* the Blocks & eras tab in the /admin pages is also broken
+    * Blocks/eras should also be able to be added/removed
+    * Sets are part of blocks/eras, allow me to add sets in blocks or link a set to a blcok
+* Import decks feature in admin. there is a standard convention used by tcg live and the community, allow the admin to use this convention to create decks
+    * an example can be found in screenshots/paste_example.txt
+    * If cards are missing in the database, It should give a popup and show which cards it will add before creating the deck
+* the deck edit page has a "Primer" field, explain to me what the idea was here and why this has not been implement on the frontend?
 
+# Era VS Format VS Block 
+This is the most important thing we need to clean up. We have been using the 3 terms together and it has not always been clear what has been meant. Here we will have the definitive explanation of each term. Make sure to scan the site afterwards and update all mentions to this definition. 
+
+Make sure to ask more questions so I know you understand what has been written here and we can make correct changes
+
+* Era: A period in time of the game that a certain set of gimmick(s) were central to this timeframe. This can most often be described as a  
+* Block: A Block is a format where all sets of an era are allowed to be played in. The name "block" is a community name given to this kind of format as this was never an original format, but rather a result of players going back to play a group of cards that were ment to be played together according to the game designers.
+* Format: A format is a collection of sets, where only the cards in these sets are allowed to be played with. 
+
+## Creating Eras
+Eras are a period in time. as these are pretty set in stone, they must require the admin user to create them to display on the site. Eras often have their own set of rules and require some explaining, the admin must be able to write this text.
+
+in /screenshots/format_detail_page.png you can see how this explanation page looks like currently, but this is not editable. Lets discuss if this is something we want to do hardcoded or not
+
+## Creating Blocks 
+As mentioned by our new definition, a block is nothing more than a format where all cards of a certain era are legal. As these are a format, the admin user will create them as if they were a format and select all sets corresponding to this block themselves, as they would when creating any normal format. Allow the admin 
+
+## Formats interacting with eras
+Most of the time formats are a subset of an era. it does however happen that formats have sets from 2 different eras. This natural quirk of the evolving game must be visible. As a general rule of thumb, the lastest era is where this format belongs to. 
+Example: the first BW set is released, and the format now exists of card from the HGSS era and the BW era. The rules have changed with this new release, thus we are now playing with rules of the BW era, thus this is a format of the BW era. This should be set by the user, while also allowing to make an annotation that there are cards in this format from the previous era.
+
+## Cards interacting with formats
+As cards are part of sets and sets are part of formats, a link between them is not farfetched. This instance will be most prevelant in the deck edit feature, where the filters will have to be set automatically, so the admin user can only select cards that are in the format the deck is supposed to be in.
+
+## Cards interacting with eras
+As cards are part of sets, when adding cards to the database, they should automatically fall into a certain era, this connection should be able to be made when importing the card by user input.
