@@ -8,13 +8,13 @@ const ENERGY_TYPES = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'F
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const emptyForm = () => ({
-  name: '', slug: '', era_block_id: '', format_id: '1', energy_type: 'Colorless', intended_size: '60', primer_md: '',
+  name: '', slug: '', era_block_id: '', format_id: '', energy_type: 'Colorless', intended_size: '60', primer_md: '',
 })
 
 export function AdminDecksPage() {
   const [decks,   setDecks]   = useState<DeckSummary[]>([])
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
-  const [formats, setFormats] = useState<{ id: number; name: string }[]>([])
+  const [formats, setFormats] = useState<{ id: number; name: string; era_id: number | null; is_block: number }[]>([])
   const [form,    setForm]    = useState<ReturnType<typeof emptyForm> | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -67,7 +67,7 @@ export function AdminDecksPage() {
         {form ? (
           <>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 10 }}>New Deck</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 80px', gap: 10, marginBottom: 10 }}>
               <div style={S.field}>
                 <label style={S.label}>Name</label>
                 <input style={S.input} value={form.name} onChange={e => setForm(f => ({ ...f!, name: e.target.value, slug: slugify(e.target.value) }))} placeholder="Magnezone Prime" />
@@ -77,7 +77,25 @@ export function AdminDecksPage() {
                 <input style={S.input} value={form.slug} onChange={e => setForm(f => ({ ...f!, slug: e.target.value }))} />
               </div>
               <div style={S.field}>
-                <label style={S.label}>Block</label>
+                <label style={S.label}>Format</label>
+                <select
+                  style={S.select}
+                  value={form.format_id}
+                  onChange={e => {
+                    const fmt = formats.find(f => f.id === Number(e.target.value))
+                    setForm(f => ({
+                      ...f!,
+                      format_id: e.target.value,
+                      era_block_id: fmt?.era_id ? String(fmt.era_id) : f!.era_block_id,
+                    }))
+                  }}
+                >
+                  <option value="">Select…</option>
+                  {formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+              <div style={S.field}>
+                <label style={S.label}>Era</label>
                 <select style={S.select} value={form.era_block_id} onChange={e => setForm(f => ({ ...f!, era_block_id: e.target.value }))}>
                   <option value="">Select…</option>
                   {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -100,7 +118,7 @@ export function AdminDecksPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button style={S.btnP} onClick={createDeck} disabled={!form.name || !form.era_block_id}>Create Deck</button>
+              <button style={S.btnP} onClick={createDeck} disabled={!form.name || !form.era_block_id || !form.format_id}>Create Deck</button>
               <button style={S.btnS} onClick={() => { setForm(null); setCreateError(null) }}>Cancel</button>
             </div>
           </>
@@ -113,7 +131,7 @@ export function AdminDecksPage() {
       <div style={S.card}>
         <table style={S.table}>
           <thead><tr>
-            {['Name', 'Block', 'Type', 'Format', 'Real', 'Proxy', 'Missing', 'Ordered', 'Total', ''].map(h => (
+            {['Name', 'Era', 'Type', 'Format', 'Real', 'Proxy', 'Missing', 'Ordered', 'Total', ''].map(h => (
               <th key={h} style={S.th}>{h}</th>
             ))}
           </tr></thead>
