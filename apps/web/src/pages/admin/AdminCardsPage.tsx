@@ -162,7 +162,7 @@ export function AdminCardsPage() {
           </select>
         </div>
         <div style={S.field}>
-          <label style={S.label}>Block</label>
+          <label style={S.label}>Era</label>
           <select style={S.select} value={filters.era} onChange={e => setFilters(f => ({ ...f, era: e.target.value }))}>
             <option value="">All</option>
             {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
@@ -188,7 +188,7 @@ export function AdminCardsPage() {
               />
             </div>
             <div style={S.field}>
-              <label style={S.label}>Assign era block (optional)</label>
+              <label style={S.label}>Assign era (optional)</label>
               <select style={S.select} value={importEra} onChange={e => setImportEra(e.target.value)}>
                 <option value="">None</option>
                 {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -273,7 +273,7 @@ export function AdminCardsPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr 80px', gap: 10, marginBottom: 12 }}>
             <div style={S.field}>
-              <label style={S.label}>Block</label>
+              <label style={S.label}>Era</label>
               <select style={S.select} value={form.era_block_id} onChange={e => setForm(x => ({ ...x!, era_block_id: e.target.value }))}>
                 <option value="">None</option>
                 {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

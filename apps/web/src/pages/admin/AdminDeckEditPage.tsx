@@ -85,7 +85,7 @@ export function AdminDeckEditPage() {
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       if (!q.trim()) { setResults([]); return }
-      const r = await fetchAdminCards({ name: q, format_id: meta.format_id || undefined, era: blockVal || undefined })
+      const r = await fetchAdminCards({ name: q, era: blockVal || undefined })
       setResults(r.slice(0, 12))
     }, 300)
   }
@@ -180,7 +180,7 @@ export function AdminDeckEditPage() {
             <input style={S.input} value={meta.slug} onChange={e => setMeta(m => ({ ...m, slug: e.target.value }))} />
           </div>
           <div style={S.field}>
-            <label style={S.label}>Block</label>
+            <label style={S.label}>Era</label>
             <select style={S.select} value={meta.era_block_id} onChange={e => setMeta(m => ({ ...m, era_block_id: Number(e.target.value) }))}>
               <option value={0}>— none —</option>
               {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -245,9 +245,9 @@ export function AdminDeckEditPage() {
             )}
           </div>
           <div style={S.field}>
-            <label style={S.label}>Block</label>
+            <label style={S.label}>Era</label>
             <select style={S.select} value={searchBlock} onChange={e => { setSearchBlock(e.target.value); searchCards(query, e.target.value) }}>
-              <option value="">All blocks</option>
+              <option value="">All eras</option>
               {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
             </select>
           </div>
