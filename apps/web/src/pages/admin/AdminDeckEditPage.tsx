@@ -37,9 +37,9 @@ export function AdminDeckEditPage() {
   const [metaSaved, setMetaSaved] = useState(false)
 
   // Card search state
-  const [query,       setQuery]       = useState('')
-  const [results,     setResults]     = useState<AdminCard[]>([])
-  const [searchBlock, setSearchBlock] = useState('')
+  const [query,          setQuery]          = useState('')
+  const [results,        setResults]        = useState<AdminCard[]>([])
+  const [searchFormatId, setSearchFormatId] = useState(0)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Per-row editing state
@@ -54,7 +54,7 @@ export function AdminDeckEditPage() {
     if (!d) return
     setDeck(d)
     setMeta({ name: d.name, slug: d.slug, era_block_id: d.era_block_id, energy_type: d.energy_type, intended_size: d.intended_size, primer_md: d.primer_md ?? '', format_id: d.format_id })
-    setSearchBlock(d.era_slug)
+    setSearchFormatId(d.format_id)
     const initial: typeof qtys = {}
     const initialFan: Record<number, number | null> = {}
     for (const c of d.cards) {
@@ -79,13 +79,13 @@ export function AdminDeckEditPage() {
     await load()
   }
 
-  const searchCards = (q: string, block?: string) => {
-    const blockVal = block ?? searchBlock
+  const searchCards = (q: string, fmtId?: number) => {
+    const fmtVal = fmtId ?? searchFormatId
     setQuery(q)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       if (!q.trim()) { setResults([]); return }
-      const r = await fetchAdminCards({ name: q, era: blockVal || undefined })
+      const r = await fetchAdminCards({ name: q, format_id: fmtVal || undefined })
       setResults(r.slice(0, 12))
     }, 300)
   }
@@ -245,10 +245,10 @@ export function AdminDeckEditPage() {
             )}
           </div>
           <div style={S.field}>
-            <label style={S.label}>Era</label>
-            <select style={S.select} value={searchBlock} onChange={e => { setSearchBlock(e.target.value); searchCards(query, e.target.value) }}>
-              <option value="">All eras</option>
-              {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
+            <label style={S.label}>Format</label>
+            <select style={S.select} value={searchFormatId} onChange={e => { const id = Number(e.target.value); setSearchFormatId(id); searchCards(query, id) }}>
+              <option value={0}>All formats</option>
+              {formats.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
         </div>

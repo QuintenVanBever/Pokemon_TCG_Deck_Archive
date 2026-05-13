@@ -107,7 +107,7 @@ app.get('/api/decks', async c => {
       d.id, d.slug, d.name, d.energy_type,
       eb.key  AS era,       eb.slug AS era_slug, eb.name AS era_name,
       eb.color AS era_color, eb.dark AS era_dark,
-      f.slug  AS format,
+      f.slug  AS format,    f.name  AS format_name,
       SUM(dc.qty_real)    AS count_real,
       SUM(dc.qty_proxy)   AS count_proxy,
       SUM(dc.qty_missing) AS count_missing,
@@ -454,14 +454,21 @@ app.get('/api/admin/cards', async c => {
   if (supertype) { sql += ' AND c.supertype = ?'; params.push(supertype) }
   if (era)       { sql += ' AND (eb.slug = ? OR c.is_basic_energy = 1)'; params.push(era) }
   if (formatId) {
-    const fmt = await c.env.DB.prepare('SELECT regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
-    if (fmt?.regulation_marks) {
-      sql += ' AND (c.regulation_mark IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1)'
-      params.push(fmt.regulation_marks)
-    }
-    if (fmt?.legal_set_ids) {
-      sql += ' AND (c.set_id IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1)'
-      params.push(fmt.legal_set_ids)
+    const fmt = await c.env.DB.prepare('SELECT era_id, regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
+    if (fmt) {
+      if (fmt.legal_set_ids) {
+        // Most specific: filter by exact set IDs configured on the format
+        sql += ' AND (c.set_id IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        params.push(fmt.legal_set_ids)
+      } else if (fmt.regulation_marks) {
+        // Modern standard: filter by regulation mark
+        sql += ' AND (c.regulation_mark IN (SELECT value FROM json_each(?)) OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        params.push(fmt.regulation_marks)
+      } else if (fmt.era_id) {
+        // Old-era block with no marks/sets: filter by the format's era block
+        sql += ' AND (c.era_block_id = ? OR c.is_basic_energy = 1 OR c.is_custom = 1)'
+        params.push(fmt.era_id)
+      }
     }
   }
   sql += ' ORDER BY c.name LIMIT 200'

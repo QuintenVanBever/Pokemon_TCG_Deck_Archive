@@ -16,7 +16,8 @@ export interface DeckSummary {
   era_name: string  // 'HGSS Block', …
   era_color: string
   era_dark: string
-  format: string    // 'modified', 'standard', …
+  format:      string  // slug, e.g. 'hgss-block-modified'
+  format_name: string  // display name, e.g. 'HGSS Block Modified'
   counts: { real: number; proxy: number; missing: number; ordered: number }
   fan_cards: FanCard[]
 }

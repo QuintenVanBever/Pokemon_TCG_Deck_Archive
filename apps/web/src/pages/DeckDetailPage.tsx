@@ -4,16 +4,6 @@ import { ENERGY_META, BAR_COLORS, deriveDeckStatus } from '../data/decks'
 import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api'
 import type { EnergyType } from '../data/decks'
 
-const ERA_STRIPES: Record<string, string> = {
-  hgss: '#F5C518', bw: '#888888', xy: '#3DAA6A',
-  sm: '#D93825', swsh: '#5BC0DE', sv: '#C03060',
-}
-
-const ERA_TEXT_COLORS: Record<string, string> = {
-  hgss: '#C49A00', bw: '#666666', xy: '#2E8B57',
-  sm: '#9A2018', swsh: '#3A8FAA', sv: '#8A2040',
-}
-
 const CARD_BACK = 'https://images.pokemontcg.io/cardback.png'
 
 /* ── Left panel — deck list ──────────────────────────*/
@@ -39,7 +29,7 @@ function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean
         padding: '9px 14px 9px 0', margin: '1px 0',
         cursor: 'pointer',
         background: isActive ? 'rgba(255,255,255,0.11)' : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
-        borderLeft: `4px solid ${ERA_STRIPES[deck.era_slug] ?? '#888'}`,
+        borderLeft: `4px solid ${deck.era_color ?? '#888'}`,
         textDecoration: 'none', transition: 'background 0.15s',
       }}
     >
@@ -309,15 +299,15 @@ export function DeckDetailPage() {
   const [deck, setDeck]       = useState<DeckDetail | null>(null)
   const [allDecks, setAll]    = useState<DeckSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedEras, setExpandedEras] = useState<Record<string, boolean>>({})
-  const [expandedCard, setExpandedCard] = useState<SlotData | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+  const [expandedCard,   setExpandedCard]   = useState<SlotData | null>(null)
 
   useEffect(() => {
     setLoading(true)
     Promise.all([fetchDeck(slug), fetchDecks()]).then(([d, all]) => {
       setDeck(d)
       setAll(all)
-      if (d) setExpandedEras({ [d.era_slug]: true })
+      if (d) setExpandedGroups({ [d.format]: true })
       setLoading(false)
     })
   }, [slug])
@@ -338,14 +328,14 @@ export function DeckDetailPage() {
     )
   }
 
-  const eraOrder = ['hgss', 'bw', 'xy', 'sm', 'swsh', 'sv']
-  const byEra = eraOrder.reduce<Record<string, DeckSummary[]>>((acc, eSlug) => {
-    const group = allDecks.filter(d => d.era_slug === eSlug)
-    if (group.length > 0) acc[eSlug] = group
-    return acc
-  }, {})
+  const byFormat: Record<string, DeckSummary[]> = {}
+  const formatOrder: string[] = []
+  for (const d of allDecks) {
+    if (!byFormat[d.format]) { byFormat[d.format] = []; formatOrder.push(d.format) }
+    byFormat[d.format].push(d)
+  }
 
-  const eraTextColor = ERA_TEXT_COLORS[deck.era_slug] ?? '#888'
+  const eraTextColor = deck.era_dark ?? '#888'
   const energyMeta   = ENERGY_META[deck.energy_type as EnergyType]
   const eraLabel     = `${deck.era_name} · ${energyMeta?.label ?? deck.energy_type}`
   const { counts }   = deck
@@ -360,12 +350,13 @@ export function DeckDetailPage() {
 
       {/* ── LEFT PANEL ─────────────────────────────── */}
       <div className="deck-detail-sidebar" style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
-        {Object.entries(byEra).map(([eraSlug, decks]) => {
-          const isExpanded = expandedEras[eraSlug] ?? false
+        {formatOrder.map(fmtSlug => {
+          const fmtDecks   = byFormat[fmtSlug]
+          const isExpanded = expandedGroups[fmtSlug] ?? false
           return (
-            <div key={eraSlug}>
+            <div key={fmtSlug}>
               <button
-                onClick={() => setExpandedEras(x => ({ ...x, [eraSlug]: !x[eraSlug] }))}
+                onClick={() => setExpandedGroups(g => ({ ...g, [fmtSlug]: !g[fmtSlug] }))}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   width: '100%', padding: '6px 16px 4px',
@@ -375,10 +366,10 @@ export function DeckDetailPage() {
                   fontFamily: 'var(--font-b)',
                 }}
               >
-                <span>{decks[0].era_name}</span>
+                <span>{fmtDecks[0].format_name}</span>
                 <span style={{ fontSize: 8 }}>{isExpanded ? '▲' : '▼'}</span>
               </button>
-              {isExpanded && decks.map(d => (
+              {isExpanded && fmtDecks.map(d => (
                 <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />
               ))}
             </div>
