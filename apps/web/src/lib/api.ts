@@ -131,6 +131,7 @@ export interface BuylistRow {
   supertype: string
   set_id: string | null
   set_name: string | null
+  number: string | null
   era: string | null
   era_slug: string | null
   era_color: string | null

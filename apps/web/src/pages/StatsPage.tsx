@@ -136,9 +136,9 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
   const totalOrdered = sortedRows.reduce((s, r) => s + r.ordered, 0)
 
   function exportCsv() {
-    const header = 'Card,Set,Type,Missing,Ordered,Proxied,In Decks\n'
+    const header = 'Card,Set,Number,Type,Missing,Ordered,Proxied,In Decks\n'
     const body   = sortedRows
-      .map(r => `"${r.name}","${r.set_name ?? ''}","${r.supertype}",${r.missing},${r.ordered},${r.proxied},${r.deck_count}`)
+      .map(r => `"${r.name}","${r.set_name ?? ''}","${r.number ?? ''}","${r.supertype}",${r.missing},${r.ordered},${r.proxied},${r.deck_count}`)
       .join('\n')
     const blob = new Blob([header + body], { type: 'text/csv' })
     const a    = document.createElement('a')
@@ -293,7 +293,9 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
                   {row.name}
                 </td>
                 <td style={{ ...tdBase, fontSize: '0.75rem', color: 'rgba(26,58,92,0.5)' }}>
-                  {row.set_name ?? <span style={{ color: 'rgba(26,58,92,0.25)' }}>—</span>}
+                  {row.set_name
+                    ? <>{row.set_name}{row.number && <span style={{ marginLeft: 4, fontSize: '0.68rem', color: 'rgba(26,58,92,0.35)', fontFamily: 'monospace' }}>#{row.number}</span>}</>
+                    : <span style={{ color: 'rgba(26,58,92,0.25)' }}>—</span>}
                 </td>
                 <td style={{ ...tdBase, color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.supertype}</td>
                 <td style={{ ...tdBase, fontWeight: 900, color: row.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)', fontSize: '1rem', fontFamily: 'var(--font-d)' }}>

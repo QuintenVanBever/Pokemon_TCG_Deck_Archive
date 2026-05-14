@@ -1,13 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
-import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchFormats, BASE } from '../../lib/api'
+import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchFormats, searchPokemontcg, BASE } from '../../lib/api'
 import { ENERGY_META } from '../../data/decks'
 import { adminFetch } from '../../lib/adminAuth'
 import type { DeckDetail, DeckCard, EraBlock, AdminCard, Format } from '../../lib/api'
 import type { EnergyType } from '../../data/decks'
 
 const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water'] as const
+
+type ParsedLine   = { count: number; name: string; set: string; number: string }
+type ImportStatus = 'found' | 'auto-imported' | 'not-found'
+type ImportResult = ParsedLine & { card: AdminCard | null; status: ImportStatus }
+
+function parseTcgLive(text: string): ParsedLine[] {
+  const map = new Map<string, ParsedLine>()
+  text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => /^\d/.test(l))
+    .forEach(l => {
+      const tokens = l.split(/\s+/)
+      if (tokens.length < 4) return
+      const count = parseInt(tokens[0], 10)
+      if (isNaN(count) || count <= 0) return
+      const number = tokens[tokens.length - 1]
+      const set    = tokens[tokens.length - 2]
+      const name   = tokens.slice(1, -2).join(' ')
+      const key    = `${name}|${set}|${number}`
+      const existing = map.get(key)
+      if (existing) { existing.count += count } else { map.set(key, { count, name, set, number }) }
+    })
+  return Array.from(map.values())
+}
 
 function QtyCell({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
@@ -51,6 +76,13 @@ export function AdminDeckEditPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+
+  // TCG Live import state
+  const [importOpen,    setImportOpen]    = useState(false)
+  const [importText,    setImportText]    = useState('')
+  const [importResults, setImportResults] = useState<ImportResult[] | null>(null)
+  const [importBusy,    setImportBusy]    = useState(false)
+  const [importMessage, setImportMessage] = useState<string | null>(null)
 
   const load = async () => {
     const d = await fetchDeck(slug)
@@ -139,6 +171,63 @@ export function AdminDeckEditPage() {
     if (!deck) return
     await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, { method: 'DELETE' })
     setDeleteConfirm(null)
+    load()
+  }
+
+  const parseAndLookup = async () => {
+    const lines = parseTcgLive(importText)
+    if (!lines.length) return
+    setImportBusy(true); setImportResults(null); setImportMessage(null)
+    const results: ImportResult[] = []
+    for (const line of lines) {
+      // 1 — local DB lookup
+      let cards = await fetchAdminCards({ name: line.name })
+      let card: AdminCard | null =
+        cards.length === 1 ? cards[0]
+        : cards.find(c => c.pokemontcg_id?.split('-').pop() === line.number) ?? cards[0] ?? null
+
+      if (card) { results.push({ ...line, card, status: 'found' }); continue }
+
+      // 2 — not in local DB → try PokemonTCG API
+      const ptcgRes = await searchPokemontcg(line.name)
+      const ptcgCard = ptcgRes.data.find((c: any) => c.id.split('-').pop() === line.number)
+        ?? ptcgRes.data[0] ?? null
+
+      if (!ptcgCard) { results.push({ ...line, card: null, status: 'not-found' }); continue }
+
+      // 3 — auto-import into local DB
+      const importRes = await adminFetch(`${BASE}/api/admin/cards/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pokemontcg_id: ptcgCard.id }),
+      })
+      if (!importRes.ok) { results.push({ ...line, card: null, status: 'not-found' }); continue }
+
+      // 4 — re-fetch local record
+      cards = await fetchAdminCards({ name: line.name })
+      card = cards.find(c => c.pokemontcg_id === ptcgCard.id) ?? cards[0] ?? null
+      results.push({ ...line, card, status: card ? 'auto-imported' : 'not-found' })
+    }
+    setImportResults(results)
+    setImportBusy(false)
+  }
+
+  const doImport = async () => {
+    if (!deck || !importResults) return
+    setImportBusy(true)
+    const existingNames = new Set(deck.cards.map(c => c.name))
+    const toImport = importResults.filter(r => r.card && !existingNames.has(r.card.name))
+    let ok = 0; let capped = 0
+    for (const r of toImport) {
+      const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_id: r.card!.id, qty_real: r.count, qty_proxy: 0, qty_missing: 0, qty_ordered: 0 }),
+      })
+      if (res.ok) ok++; else capped++
+    }
+    setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''}${capped > 0 ? ` · ${capped} skipped (deck limit reached)` : ''}`)
+    setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false)
     load()
   }
 
@@ -279,7 +368,7 @@ export function AdminDeckEditPage() {
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
                     {r.image_ext_url && <img src={r.image_ext_url} alt="" style={{ height: 28, aspectRatio: '63/88', objectFit: 'cover' }} />}
                     <span style={{ fontWeight: 700 }}>{r.display_name ?? r.name}</span>
-                    <span style={{ color: '#888', fontSize: 11 }}>{r.supertype} · {r.era_name}</span>
+                    <span style={{ color: '#888', fontSize: 11 }}>{r.supertype} · {r.set_name}</span>
                   </div>
                 ))}
               </div>
@@ -293,6 +382,93 @@ export function AdminDeckEditPage() {
             </select>
           </div>
         </div>
+      </div>
+
+      {/* TCG Live import */}
+      <div style={S.card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: importOpen ? 12 : 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#888' }}>Import from TCG Live</div>
+          <button
+            style={S.btnS}
+            onClick={() => { setImportOpen(o => !o); setImportResults(null); setImportMessage(null) }}
+          >
+            {importOpen ? 'Cancel' : 'Paste decklist ↓'}
+          </button>
+        </div>
+
+        {importMessage && (
+          <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', color: '#166534', fontSize: 12, padding: '6px 10px', marginTop: 8 }}>
+            {importMessage}
+          </div>
+        )}
+
+        {importOpen && (
+          <>
+            <textarea
+              style={{ ...S.input, height: 160, resize: 'vertical', fontFamily: 'monospace', fontSize: 12, marginBottom: 8 }}
+              placeholder={'Paste your TCG Live export here:\n\nPokémon: 4\n4 Charizard ex SVI 6\n\nTrainer: 4\n4 Arven OBF 186\n\nEnergy: 4\n4 Fire Energy SVE 1'}
+              value={importText}
+              onChange={e => { setImportText(e.target.value); setImportResults(null) }}
+            />
+            <button
+              style={{ ...S.btnP, marginBottom: importResults ? 14 : 0 }}
+              onClick={parseAndLookup}
+              disabled={importBusy || !importText.trim()}
+            >
+              {importBusy ? 'Looking up cards…' : 'Parse & look up'}
+            </button>
+
+            {importResults && (
+              <>
+                <table style={{ ...S.table, marginTop: 10 }}>
+                  <thead>
+                    <tr>
+                      {['Qty', 'Parsed name', 'Set', '#', 'Matched card', 'Status'].map(h => (
+                        <th key={h} style={S.th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importResults.map((r, i) => {
+                      const already = !!deck.cards.find(c => c.name === r.card?.name)
+                      return (
+                        <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.02)' }}>
+                          <td style={S.td}>{r.count}</td>
+                          <td style={{ ...S.td, fontWeight: 600 }}>{r.name}</td>
+                          <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.set}</td>
+                          <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.number}</td>
+                          <td style={S.td}>{r.card ? (r.card.display_name ?? r.card.name) : '—'}</td>
+                          <td style={S.td}>
+                            {already
+                              ? <span style={{ color: '#888', fontSize: 11 }}>already in deck</span>
+                              : r.status === 'found'
+                                ? <span style={{ color: '#2E8B57', fontSize: 11, fontWeight: 700 }}>✓ found</span>
+                                : r.status === 'auto-imported'
+                                  ? <span style={{ color: '#1E78C4', fontSize: 11, fontWeight: 700 }}>⬇ auto-imported</span>
+                                  : <span style={{ color: '#CC3333', fontSize: 11, fontWeight: 700 }}>✗ not found</span>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    style={S.btnP}
+                    onClick={doImport}
+                    disabled={importBusy || !importResults.some(r => r.card && !deck.cards.find(c => c.name === r.card!.name))}
+                  >
+                    {importBusy ? 'Importing…' : `Import ${importResults.filter(r => r.card && !deck.cards.find(c => c.name === r.card!.name)).length} cards as Real`}
+                  </button>
+                  <span style={{ fontSize: 11, color: '#aaa' }}>
+                    {importResults.filter(r => !r.card).length > 0 && `${importResults.filter(r => !r.card).length} not found will be skipped`}
+                  </span>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {/* Deck cards */}

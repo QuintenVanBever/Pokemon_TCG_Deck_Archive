@@ -322,6 +322,7 @@ app.get('/api/stats/buylist', async c => {
       c.supertype,
       c.set_id,
       c.set_name,
+      c.pokemontcg_id,
       card_era.key   AS era,
       card_era.slug  AS era_slug,
       card_era.color AS era_color,
@@ -347,12 +348,17 @@ app.get('/api/stats/buylist', async c => {
 
   const { results } = await c.env.DB.prepare(sql).bind(...params).all()
   return c.json({
-    data: results.map((r: any) => ({
-      name: r.name, supertype: r.supertype,
-      set_id: r.set_id ?? null, set_name: r.set_name ?? null,
-      era: r.era ?? null, era_slug: r.era_slug ?? null, era_color: r.era_color ?? null,
-      missing: r.missing, proxied: r.proxied, ordered: r.ordered, deck_count: r.deck_count,
-    })),
+    data: results.map((r: any) => {
+      const ptcgId: string | null = r.pokemontcg_id ?? null
+      const number = ptcgId ? (ptcgId.includes('-') ? ptcgId.slice(ptcgId.lastIndexOf('-') + 1) : null) : null
+      return {
+        name: r.name, supertype: r.supertype,
+        set_id: r.set_id ?? null, set_name: r.set_name ?? null,
+        number,
+        era: r.era ?? null, era_slug: r.era_slug ?? null, era_color: r.era_color ?? null,
+        missing: r.missing, proxied: r.proxied, ordered: r.ordered, deck_count: r.deck_count,
+      }
+    }),
   })
 })
 
