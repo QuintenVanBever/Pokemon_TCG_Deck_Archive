@@ -1,22 +1,29 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
-import { ENERGY_META, BAR_COLORS, deriveDeckStatus } from '../data/decks'
-import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api'
-import type { EnergyType } from '../data/decks'
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from '@tanstack/react-router';
+import { ENERGY_META, BAR_COLORS, deriveDeckStatus } from '../data/decks';
+import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api';
+import type { EnergyType } from '../data/decks';
 
-const CARD_BACK = 'https://images.pokemontcg.io/cardback.png'
+const CARD_BACK = 'https://images.pokemontcg.io/cardback.png';
 
 /* ── Left panel — deck list ──────────────────────────*/
 
 function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean }) {
-  const [hovered, setHovered] = useState(false)
-  const { counts } = deck
-  const tot = counts.real + counts.proxy + counts.missing + counts.ordered
-  const status = deriveDeckStatus(counts, deck.intended_size)
+  const [hovered, setHovered] = useState(false);
+  const { counts } = deck;
+  const tot = counts.real + counts.proxy + counts.missing + counts.ordered;
+  const status = deriveDeckStatus(counts, deck.intended_size);
 
-  let markColor = '#3EE080'; let mark = '✔'
-  if (status === 'wip')      { markColor = '#FF6655'; mark = '!' }
-  if (status === 'awaiting') { markColor = '#44BBFF'; mark = '◎' }
+  let markColor = '#3EE080';
+  let mark = '✔';
+  if (status === 'wip') {
+    markColor = '#FF6655';
+    mark = '!';
+  }
+  if (status === 'awaiting') {
+    markColor = '#44BBFF';
+    mark = '◎';
+  }
 
   return (
     <Link
@@ -25,16 +32,28 @@ function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '9px 14px 9px 0', margin: '1px 0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '9px 14px 9px 0',
+        margin: '1px 0',
         cursor: 'pointer',
         background: isActive ? 'rgba(255,255,255,0.11)' : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
         borderLeft: `4px solid ${deck.era_color ?? '#888'}`,
-        textDecoration: 'none', transition: 'background 0.15s',
-      }}
-    >
+        textDecoration: 'none',
+        transition: 'background 0.15s',
+      }}>
       <div style={{ flex: 1, minWidth: 0, paddingLeft: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: '#FFFFFF',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            lineHeight: 1.3,
+          }}>
           {deck.name}
         </div>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontWeight: 600 }}>
@@ -43,33 +62,55 @@ function DeckListItem({ deck, isActive }: { deck: DeckSummary; isActive: boolean
       </div>
       <div style={{ fontSize: 14, flexShrink: 0, marginRight: 6, color: markColor }}>{mark}</div>
     </Link>
-  )
+  );
 }
 
 /* ── Stat counter block ──────────────────────────────*/
 
 function StatCounter({ value, label, type }: { value: number; label: string; type: SlotStatus }) {
-  const topColors = { real: '#3EE080', proxy: '#C090FF', missing: '#FF4444', ordered: '#44BBFF' }
-  const valColors = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' }
+  const topColors = { real: '#3EE080', proxy: '#C090FF', missing: '#FF4444', ordered: '#44BBFF' };
+  const valColors = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' };
   return (
     <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#FFFFFF', position: 'relative' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: topColors[type] }} />
-      <span style={{ fontFamily: 'var(--font-d)', fontSize: 28, lineHeight: 1, display: 'block', marginBottom: 2, color: valColors[type] }}>{value}</span>
-      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#AAAAAA' }}>{label}</span>
+      <span
+        style={{
+          fontFamily: 'var(--font-d)',
+          fontSize: 28,
+          lineHeight: 1,
+          display: 'block',
+          marginBottom: 2,
+          color: valColors[type],
+        }}>
+        {value}
+      </span>
+      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#AAAAAA' }}>
+        {label}
+      </span>
     </div>
-  )
+  );
 }
 
 /* ── Sleeve ──────────────────────────────────────────*/
 
-type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered'
+type SlotStatus = 'real' | 'proxy' | 'missing' | 'ordered';
 
-function Sleeve({ name, pokemontcgId, status, imageUrl, onClick }: {
-  name: string; pokemontcgId?: string | null; status: SlotStatus; imageUrl: string | null; onClick?: () => void
+function Sleeve({
+  name,
+  pokemontcgId,
+  status,
+  imageUrl,
+  onClick,
+}: {
+  name: string;
+  pokemontcgId?: string | null;
+  status: SlotStatus;
+  imageUrl: string | null;
+  onClick?: () => void;
 }) {
-  const [hovered, setHovered] = useState(false)
-  const isCardBack = !imageUrl
-  const src = imageUrl ?? CARD_BACK
+  const [hovered, setHovered] = useState(false);
+  const isCardBack = !imageUrl;
+  const src = imageUrl ?? CARD_BACK;
 
   return (
     <div
@@ -77,111 +118,196 @@ function Sleeve({ name, pokemontcgId, status, imageUrl, onClick }: {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        aspectRatio: '63/88', position: 'relative', cursor: 'pointer',
+        aspectRatio: '63/88',
+        position: 'relative',
+        cursor: 'pointer',
         transform: hovered ? 'translateY(-3px) scale(1.08)' : 'none',
-        zIndex: hovered ? 2 : 'auto', transition: 'transform 0.14s',
+        zIndex: hovered ? 2 : 'auto',
+        transition: 'transform 0.14s',
         overflow: 'hidden',
-      }}
-    >
+      }}>
       <img
         src={src}
         alt={name}
         style={{
-          width: '100%', height: '100%', display: 'block', objectFit: 'cover',
-          filter: status === 'missing' ? 'grayscale(100%) brightness(0.6)' : 'none',
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          objectFit: 'cover',
+          filter: status === 'missing' ? 'grayscale(50%) brightness(0.8)' : 'none',
         }}
       />
 
       {/* Card back: show name + pokemontcg id as text overlay */}
       {isCardBack && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.45)', padding: '4px 3px', gap: 2,
-        }}>
-          <div style={{
-            fontSize: 5.5, fontWeight: 800, textAlign: 'center', color: '#fff',
-            lineHeight: 1.25, wordBreak: 'break-word',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-          }}>{name}</div>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.45)',
+            padding: '4px 3px',
+            gap: 2,
+          }}>
+          <div
+            style={{
+              fontSize: 5.5,
+              fontWeight: 800,
+              textAlign: 'center',
+              color: '#fff',
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+              textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            }}>
+            {name}
+          </div>
           {pokemontcgId && (
-            <div style={{
-              fontSize: 4.5, fontWeight: 700, color: 'rgba(255,255,255,0.6)',
-              textShadow: '0 1px 2px rgba(0,0,0,0.8)', textAlign: 'center',
-            }}>{pokemontcgId}</div>
+            <div
+              style={{
+                fontSize: 4.5,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.6)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                textAlign: 'center',
+              }}>
+              {pokemontcgId}
+            </div>
           )}
         </div>
       )}
 
       {/* Proxy: diagonal-stripe strip across the middle + label */}
       {status === 'proxy' && (
-        <div style={{
-          position: 'absolute', top: '34%', left: 0, right: 0, height: '30%',
-          background: 'repeating-linear-gradient(-45deg, rgba(255,120,0,0.5) 0px, rgba(255,120,0,0.5) 5px, rgba(0,0,0,0.45) 5px, rgba(0,0,0,0.45) 10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{
-            background: 'rgba(0,0,0,0.75)', color: '#FF8C00',
-            fontSize: 8, fontWeight: 900, letterSpacing: '0.16em',
-            padding: '2px 5px',
-          }}>PROXY</div>
+        <div
+          style={{
+            position: 'absolute',
+            top: '60%',
+            left: 0,
+            right: 0,
+            height: '15%',
+            // Smooth anti-aliased gradient transition using color-stop blending
+            background:
+              'repeating-linear-gradient(-45deg, rgba(255,120,0,0.8) 0px, rgba(255,120,0,0.8) 4.5px, rgba(0,0,0,0.75) 5px, rgba(0,0,0,0.75) 9.5px, rgba(255,120,0,0.8) 10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Added scaleX to stretch the edges safely past the card borders, and hardware acceleration
+            transform: 'rotate(-16deg) scaleX(1.15)',
+            backfaceVisibility: 'hidden',
+            WebkitFontSmoothing: 'antialiased',
+          }}>
+          <div
+            style={{
+              background: 'rgba(0,0,0,0.75)',
+              color: '#FF8C00',
+              fontSize: 8,
+              fontWeight: 900,
+              letterSpacing: '0.16em',
+              padding: '2px 5px',
+              // Prevents the inner text from looking blurry or pixelated due to parent rotation
+              transform: 'skewX(0deg)',
+            }}>
+            PROXY
+          </div>
         </div>
       )}
 
       {/* Missing: grayscale filter on img (above) + banner */}
       {status === 'missing' && (
-        <div style={{
-          position: 'absolute', bottom: '20%', left: 0, right: 0,
-          background: 'rgba(0,0,0,0.78)', color: '#FF6666',
-          fontSize: 8, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
-        }}>MISSING</div>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '20%',
+            left: 0,
+            right: 0,
+            background: 'rgba(0,0,0,0.78)',
+            transform: 'rotate(-16deg) scaleX(1.15)',
+            color: '#FF6666',
+            fontSize: 8,
+            fontWeight: 900,
+            textAlign: 'center',
+            padding: '3px 0',
+            letterSpacing: '0.14em',
+          }}>
+          MISSING
+        </div>
       )}
 
       {/* Ordered: blue tint + ◎ + label higher up */}
       {status === 'ordered' && (
         <>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(30,120,196,0.45)' }} />
-          <span style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            fontSize: 14, color: 'rgba(160,220,255,0.95)',
-            textShadow: '0 0 4px rgba(0,0,0,0.6)',
-          }}>◎</span>
-          <div style={{
-            position: 'absolute', bottom: '20%', left: 0, right: 0,
-            background: 'rgba(20,90,170,0.85)', color: '#CCE8FF',
-            fontSize: 6, fontWeight: 900, textAlign: 'center', padding: '3px 0', letterSpacing: '0.14em',
-          }}>ORDERED</div>
+          <span
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: 14,
+              color: 'rgba(160,220,255,0.95)',
+              textShadow: '0 0 4px rgba(0,0,0,0.6)',
+            }}>
+            ◎
+          </span>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '20%',
+              left: 0,
+              right: 0,
+              background: 'rgba(20,90,170,0.85)',
+              color: '#CCE8FF',
+              fontSize: 6,
+              fontWeight: 900,
+              textAlign: 'center',
+              padding: '3px 0',
+              letterSpacing: '0.14em',
+            }}>
+            ORDERED
+          </div>
         </>
       )}
 
       {hovered && (
-        <div style={{
-          position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--navy)', color: '#fff', fontSize: 10, fontWeight: 700,
-          whiteSpace: 'nowrap', padding: '4px 8px', zIndex: 10, pointerEvents: 'none',
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '110%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--navy)',
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            padding: '4px 8px',
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}>
           {name}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /* ── Sleeve grid ─────────────────────────────────────*/
 
-type SlotData = { name: string; pokemontcgId: string | null; status: SlotStatus; imageUrl: string | null }
+type SlotData = { name: string; pokemontcgId: string | null; status: SlotStatus; imageUrl: string | null };
 
 function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (slot: SlotData) => void }) {
-  const slots: SlotData[] = []
+  const slots: SlotData[] = [];
   for (const card of cards) {
-    const base = { name: card.name, pokemontcgId: card.pokemontcg_id ?? null, imageUrl: card.image_url }
-    for (let i = 0; i < card.qty_real;    i++) slots.push({ ...base, status: 'real' })
-    for (let i = 0; i < card.qty_proxy;   i++) slots.push({ ...base, status: 'proxy' })
-    for (let i = 0; i < card.qty_ordered; i++) slots.push({ ...base, status: 'ordered' })
-    for (let i = 0; i < card.qty_missing; i++) slots.push({ ...base, status: 'missing' })
+    const base = { name: card.name, pokemontcgId: card.pokemontcg_id ?? null, imageUrl: card.image_url };
+    for (let i = 0; i < card.qty_real; i++) slots.push({ ...base, status: 'real' });
+    for (let i = 0; i < card.qty_proxy; i++) slots.push({ ...base, status: 'proxy' });
+    for (let i = 0; i < card.qty_ordered; i++) slots.push({ ...base, status: 'ordered' });
+    for (let i = 0; i < card.qty_missing; i++) slots.push({ ...base, status: 'missing' });
   }
-  while (slots.length < 60) slots.push({ name: '?', pokemontcgId: null, status: 'real', imageUrl: null })
+  while (slots.length < 60) slots.push({ name: '?', pokemontcgId: null, status: 'real', imageUrl: null });
 
   return (
     <div className="sleeve-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 4 }}>
@@ -196,54 +322,96 @@ function SleeveGrid({ cards, onCardClick }: { cards: DeckCard[]; onCardClick: (s
         />
       ))}
     </div>
-  )
+  );
 }
 
 /* ── Card expand modal ───────────────────────────────*/
 
-function CardModal({ name, pokemontcgId, imageUrl, status, onClose }: {
-  name: string; pokemontcgId?: string | null; imageUrl: string | null; status: SlotStatus; onClose: () => void
+function CardModal({
+  name,
+  pokemontcgId,
+  imageUrl,
+  status,
+  onClose,
+}: {
+  name: string;
+  pokemontcgId?: string | null;
+  imageUrl: string | null;
+  status: SlotStatus;
+  onClose: () => void;
 }) {
-  const isCardBack = !imageUrl
-  const src = imageUrl ?? CARD_BACK
-  const statusLabel: Record<SlotStatus, string> = { real: 'Real', proxy: 'Proxy', missing: 'Missing', ordered: 'Ordered' }
-  const statusColor: Record<SlotStatus, string> = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' }
+  const isCardBack = !imageUrl;
+  const src = imageUrl ?? CARD_BACK;
+  const statusLabel: Record<SlotStatus, string> = { real: 'Real', proxy: 'Proxy', missing: 'Missing', ordered: 'Ordered' };
+  const statusColor: Record<SlotStatus, string> = { real: '#2E8B57', proxy: '#7B52C4', missing: '#CC3333', ordered: '#1E78C4' };
 
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
         background: 'rgba(0,0,0,0.78)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
       <div
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         style={{
-          position: 'relative', width: 280,
-          background: 'var(--navy)', padding: 4,
+          position: 'relative',
+          width: 280,
+          background: 'var(--navy)',
+          padding: 4,
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-        }}
-      >
+        }}>
         <div style={{ position: 'relative', aspectRatio: '63/88' }}>
           <img
             src={src}
             alt={name}
             style={{
-              width: '100%', height: '100%', display: 'block', objectFit: 'cover',
-              filter: status === 'missing' ? 'grayscale(100%) brightness(0.6)' : 'none',
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              objectFit: 'cover',
+              filter: status === 'missing' ? 'grayscale(10%) brightness(0.9)' : 'none',
             }}
           />
           {isCardBack && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.45)', padding: '12px 10px', gap: 6,
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 800, textAlign: 'center', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{name}</div>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0,0,0,0.45)',
+                padding: '12px 10px',
+                gap: 6,
+              }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textAlign: 'center',
+                  color: '#fff',
+                  lineHeight: 1.3,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                }}>
+                {name}
+              </div>
               {pokemontcgId && (
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{pokemontcgId}</div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: 'rgba(255,255,255,0.6)',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                  }}>
+                  {pokemontcgId}
+                </div>
               )}
             </div>
           )}
@@ -255,126 +423,168 @@ function CardModal({ name, pokemontcgId, imageUrl, status, onClose }: {
         <button
           onClick={onClose}
           style={{
-            position: 'absolute', top: -10, right: -10,
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'var(--yellow)', color: 'var(--navy)',
-            border: 'none', fontSize: 13, cursor: 'pointer',
-            fontWeight: 900, lineHeight: '24px', textAlign: 'center', padding: 0,
-          }}
-        >✕</button>
+            position: 'absolute',
+            top: -10,
+            right: -10,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'var(--yellow)',
+            color: 'var(--navy)',
+            border: 'none',
+            fontSize: 13,
+            cursor: 'pointer',
+            fontWeight: 900,
+            lineHeight: '24px',
+            textAlign: 'center',
+            padding: 0,
+          }}>
+          ✕
+        </button>
       </div>
     </div>
-  )
+  );
 }
 
 /* ── Action button ───────────────────────────────────*/
 
 function ActionBtn({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
-  const [hovered, setHovered] = useState(false)
+  const [hovered, setHovered] = useState(false);
   return (
     <button
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        fontFamily: 'var(--font-d)', fontSize: '0.75rem', letterSpacing: '0.05em',
-        padding: '0.4rem 1.1rem', cursor: 'pointer',
+        fontFamily: 'var(--font-d)',
+        fontSize: '0.75rem',
+        letterSpacing: '0.05em',
+        padding: '0.4rem 1.1rem',
+        cursor: 'pointer',
         transform: hovered ? 'translateY(-1px)' : 'none',
         boxShadow: hovered ? '0 3px 10px rgba(0,0,0,0.14)' : 'none',
         transition: 'transform 0.14s, box-shadow 0.14s',
         background: primary ? 'var(--navy)' : 'rgba(26,58,92,0.09)',
         color: primary ? 'var(--yellow)' : 'var(--navy)',
         border: primary ? 'none' : '2px solid rgba(26,58,92,0.2)',
-      }}
-    >
+      }}>
       {children}
     </button>
-  )
+  );
 }
 
 /* ── Page ────────────────────────────────────────────*/
 
 export function DeckDetailPage() {
-  const { slug } = useParams({ from: '/decks/$slug' })
+  const { slug } = useParams({ from: '/decks/$slug' });
 
-  const [deck, setDeck]       = useState<DeckDetail | null>(null)
-  const [allDecks, setAll]    = useState<DeckSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
-  const [expandedCard,   setExpandedCard]   = useState<SlotData | null>(null)
+  const [deck, setDeck] = useState<DeckDetail | null>(null);
+  const [allDecks, setAll] = useState<DeckSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [expandedCard, setExpandedCard] = useState<SlotData | null>(null);
 
   useEffect(() => {
-    setLoading(true)
+    setLoading(true);
     Promise.all([fetchDeck(slug), fetchDecks()]).then(([d, all]) => {
-      setDeck(d)
-      setAll(all)
-      if (d) setExpandedGroups({ [d.format]: true })
-      setLoading(false)
-    })
-  }, [slug])
+      setDeck(d);
+      setAll(all);
+      if (d) setExpandedGroups({ [d.format]: true });
+      setLoading(false);
+    });
+  }, [slug]);
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - var(--topbar-h))', fontFamily: 'var(--font-d)', fontSize: '1.2rem', color: 'rgba(26,58,92,0.4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100vh - var(--topbar-h))',
+          fontFamily: 'var(--font-d)',
+          fontSize: '1.2rem',
+          color: 'rgba(26,58,92,0.4)',
+        }}>
         Loading…
       </div>
-    )
+    );
   }
 
   if (!deck) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - var(--topbar-h))', fontFamily: 'var(--font-d)', fontSize: '1.2rem', color: 'rgba(26,58,92,0.4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 'calc(100vh - var(--topbar-h))',
+          fontFamily: 'var(--font-d)',
+          fontSize: '1.2rem',
+          color: 'rgba(26,58,92,0.4)',
+        }}>
         Deck not found.
       </div>
-    )
+    );
   }
 
-  const byFormat: Record<string, DeckSummary[]> = {}
-  const formatOrder: string[] = []
+  const byFormat: Record<string, DeckSummary[]> = {};
+  const formatOrder: string[] = [];
   for (const d of allDecks) {
-    if (!byFormat[d.format]) { byFormat[d.format] = []; formatOrder.push(d.format) }
-    byFormat[d.format].push(d)
+    if (!byFormat[d.format]) {
+      byFormat[d.format] = [];
+      formatOrder.push(d.format);
+    }
+    byFormat[d.format].push(d);
   }
 
-  const eraTextColor = deck.era_dark ?? '#888'
-  const energyMeta   = ENERGY_META[deck.energy_type as EnergyType]
-  const eraLabel     = `${deck.era_name} · ${energyMeta?.label ?? deck.energy_type}`
-  const { counts }   = deck
-  const totalCards   = counts.real + counts.proxy + counts.missing + counts.ordered
-  const intendedSize = deck.intended_size ?? 60
+  const eraTextColor = deck.era_dark ?? '#888';
+  const energyMeta = ENERGY_META[deck.energy_type as EnergyType];
+  const eraLabel = `${deck.era_name} · ${energyMeta?.label ?? deck.energy_type}`;
+  const { counts } = deck;
+  const totalCards = counts.real + counts.proxy + counts.missing + counts.ordered;
+  const intendedSize = deck.intended_size ?? 60;
 
   const barSegs = (['real', 'proxy', 'ordered', 'missing'] as const)
-    .filter(s => counts[s] > 0)
-    .map(s => ({ key: s, pct: (counts[s] / intendedSize) * 100, color: BAR_COLORS[s] }))
+    .filter((s) => counts[s] > 0)
+    .map((s) => ({ key: s, pct: (counts[s] / intendedSize) * 100, color: BAR_COLORS[s] }));
 
   return (
-    <div className="deck-detail-layout" style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
-
+    <div
+      className="deck-detail-layout"
+      style={{ display: 'grid', gridTemplateColumns: '256px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
       {/* ── LEFT PANEL ─────────────────────────────── */}
-      <div className="deck-detail-sidebar" style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
-        {formatOrder.map(fmtSlug => {
-          const fmtDecks   = byFormat[fmtSlug]
-          const isExpanded = expandedGroups[fmtSlug] ?? false
+      <div
+        className="deck-detail-sidebar"
+        style={{ background: 'var(--navy)', overflowY: 'auto', padding: '16px 0', borderRight: '3px solid var(--yellow)' }}>
+        {formatOrder.map((fmtSlug) => {
+          const fmtDecks = byFormat[fmtSlug];
+          const isExpanded = expandedGroups[fmtSlug] ?? false;
           return (
             <div key={fmtSlug}>
               <button
-                onClick={() => setExpandedGroups(g => ({ ...g, [fmtSlug]: !g[fmtSlug] }))}
+                onClick={() => setExpandedGroups((g) => ({ ...g, [fmtSlug]: !g[fmtSlug] }))}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: '6px 16px 4px',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontSize: 9, fontWeight: 900, letterSpacing: '0.18em',
-                  textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '6px 16px 4px',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 9,
+                  fontWeight: 900,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.35)',
                   fontFamily: 'var(--font-b)',
-                }}
-              >
+                }}>
                 <span>{fmtDecks[0].format_name ?? fmtDecks[0].era_name}</span>
                 <span style={{ fontSize: 8 }}>{isExpanded ? '▲' : '▼'}</span>
               </button>
-              {isExpanded && fmtDecks.map(d => (
-                <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />
-              ))}
+              {isExpanded && fmtDecks.map((d) => <DeckListItem key={d.slug} deck={d} isActive={d.slug === slug} />)}
             </div>
-          )
+          );
         })}
       </div>
       {/* ── RIGHT PANEL ────────────────────────────── */}
@@ -382,18 +592,43 @@ export function DeckDetailPage() {
         {/* Deck header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ marginBottom: 8 }}>
-            <Link to="/decks" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', color: 'rgba(26,58,92,0.45)', textDecoration: 'none' }}>
+            <Link
+              to="/decks"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                color: 'rgba(26,58,92,0.45)',
+                textDecoration: 'none',
+              }}>
               ← All Decks
             </Link>
           </div>
-          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: eraTextColor, marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 900,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: eraTextColor,
+              marginBottom: 4,
+            }}>
             {eraLabel}
           </div>
-          <div style={{ fontFamily: 'var(--font-d)', fontSize: 30, color: 'var(--navy)', lineHeight: 1.05, textShadow: '1px 1px 0 rgba(0,0,0,0.07)', marginBottom: 6 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-d)',
+              fontSize: 30,
+              color: 'var(--navy)',
+              lineHeight: 1.05,
+              textShadow: '1px 1px 0 rgba(0,0,0,0.07)',
+              marginBottom: 6,
+            }}>
             {deck.name}
           </div>
           {deck.format && (
-            <div style={{ fontSize: 11, color: 'rgba(26,58,92,0.45)', fontWeight: 700, marginBottom: 18, letterSpacing: '0.04em' }}>
+            <div
+              style={{ fontSize: 11, color: 'rgba(26,58,92,0.45)', fontWeight: 700, marginBottom: 18, letterSpacing: '0.04em' }}>
               {deck.format}
             </div>
           )}
@@ -411,7 +646,15 @@ export function DeckDetailPage() {
 
         {/* Sleeve grid */}
         <div style={{ background: '#FFFFFF', padding: 18, boxShadow: '0 4px 20px rgba(26,58,92,0.1)', marginBottom: 16 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 14 }}>
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 900,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: '#AAAAAA',
+              marginBottom: 14,
+            }}>
             All {totalCards} cards · click to enlarge · hover for name
           </div>
           <SleeveGrid cards={deck.cards} onCardClick={setExpandedCard} />
@@ -419,13 +662,17 @@ export function DeckDetailPage() {
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginBottom: 16 }}>
-          {([
-            { key: 'real',    label: 'Real',    bg: '#FAFAFA', border: '#CCDDDD' },
-            { key: 'proxy',   label: 'Proxy',   bg: '#FFD700', border: '#C49A00' },
-            { key: 'ordered', label: 'Ordered', bg: '#1E78C4', border: '#1055A0' },
-            { key: 'missing', label: 'Missing', bg: '#1A2030', border: 'rgba(200,200,200,0.3)' },
-          ] as const).map(({ key, label, bg, border }) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>
+          {(
+            [
+              { key: 'real', label: 'Real', bg: '#FAFAFA', border: '#CCDDDD' },
+              { key: 'proxy', label: 'Proxy', bg: '#FFD700', border: '#C49A00' },
+              { key: 'ordered', label: 'Ordered', bg: '#1E78C4', border: '#1055A0' },
+              { key: 'missing', label: 'Missing', bg: '#1A2030', border: 'rgba(200,200,200,0.3)' },
+            ] as const
+          ).map(({ key, label, bg, border }) => (
+            <div
+              key={key}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>
               <div style={{ width: 14, height: 20, background: bg, border: `1.5px solid ${border}` }} />
               {label}
             </div>
@@ -441,16 +688,25 @@ export function DeckDetailPage() {
 
         {/* Deck description */}
         {deck.primer_md && (
-          <div style={{
-            background: '#FFFFFF', padding: '16px 20px',
-            boxShadow: '0 4px 20px rgba(26,58,92,0.1)', marginBottom: 16,
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#AAAAAA', marginBottom: 10 }}>
+          <div
+            style={{
+              background: '#FFFFFF',
+              padding: '16px 20px',
+              boxShadow: '0 4px 20px rgba(26,58,92,0.1)',
+              marginBottom: 16,
+            }}>
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 900,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: '#AAAAAA',
+                marginBottom: 10,
+              }}>
               Deck Description
             </div>
-            <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-              {deck.primer_md}
-            </div>
+            <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{deck.primer_md}</div>
           </div>
         )}
 
@@ -475,5 +731,5 @@ export function DeckDetailPage() {
         />
       )}
     </div>
-  )
+  );
 }

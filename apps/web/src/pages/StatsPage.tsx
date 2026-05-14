@@ -94,6 +94,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
   const [typeFilter,    setTypeFilter]    = useState('all')
   const [setFilter,     setSetFilter]     = useState('all')
   const [includeCustom, setIncludeCustom] = useState(false)
+  const [aggregate,     setAggregate]     = useState(false)
   const [rows,    setRows]    = useState<BuylistRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sortCol, setSortCol] = useState<'name' | 'supertype' | 'set_name' | 'missing' | 'ordered' | 'proxied' | 'deck_count'>('missing')
@@ -109,18 +110,36 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
   }, [eraFilter, typeFilter, includeCustom])
 
   const sortedRows = useMemo(() => {
-    const filtered = setFilter === 'all' ? rows : rows.filter(r => r.set_name === setFilter)
+    const filtered = (!aggregate && setFilter !== 'all') ? rows.filter(r => r.set_name === setFilter) : rows
     return [...filtered].sort((a, b) => {
       let va: string | number, vb: string | number
-      if (sortCol === 'name')       { va = a.name;       vb = b.name }
-      else if (sortCol === 'supertype') { va = a.supertype;  vb = b.supertype }
+      if (sortCol === 'name')           { va = a.name;           vb = b.name }
+      else if (sortCol === 'supertype') { va = a.supertype;      vb = b.supertype }
       else if (sortCol === 'set_name')  { va = a.set_name ?? ''; vb = b.set_name ?? '' }
-      else                          { va = a[sortCol];   vb = b[sortCol] }
+      else                              { va = a[sortCol];       vb = b[sortCol] }
       if (va < vb) return sortDir === 'asc' ? -1 : 1
       if (va > vb) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [rows, setFilter, sortCol, sortDir])
+  }, [rows, setFilter, sortCol, sortDir, aggregate])
+
+  const displayRows = useMemo(() => {
+    if (!aggregate) return sortedRows
+    const map = new Map<string, BuylistRow>()
+    for (const r of sortedRows) {
+      const key = `${r.name}||${r.supertype}`
+      const existing = map.get(key)
+      if (existing) {
+        existing.missing    += r.missing
+        existing.proxied    += r.proxied
+        existing.ordered    += r.ordered
+        existing.deck_count += r.deck_count
+      } else {
+        map.set(key, { ...r, set_id: null, set_name: null, number: null })
+      }
+    }
+    return Array.from(map.values())
+  }, [sortedRows, aggregate])
 
   const setOptions = useMemo(() => {
     const seen = new Set<string>()
@@ -131,9 +150,9 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
     return opts.sort()
   }, [rows])
 
-  const totalMissing = sortedRows.reduce((s, r) => s + r.missing, 0)
-  const totalProxied = sortedRows.reduce((s, r) => s + r.proxied, 0)
-  const totalOrdered = sortedRows.reduce((s, r) => s + r.ordered, 0)
+  const totalMissing = displayRows.reduce((s, r) => s + r.missing, 0)
+  const totalProxied = displayRows.reduce((s, r) => s + r.proxied, 0)
+  const totalOrdered = displayRows.reduce((s, r) => s + r.ordered, 0)
 
   function exportCsv() {
     const header = 'Card,Set,Number,Type,Missing,Ordered,Proxied,In Decks\n'
@@ -213,8 +232,8 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
           ))}
         </div>
 
-        {/* Set dropdown */}
-        {setOptions.length > 0 && (
+        {/* Set dropdown — hidden when aggregating by name */}
+        {!aggregate && setOptions.length > 0 && (
           <>
             <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -234,6 +253,11 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
         {/* Custom toggle */}
         <FilterChip active={includeCustom} onClick={() => setIncludeCustom(v => !v)}>
           Include custom
+        </FilterChip>
+
+        {/* Aggregate toggle */}
+        <FilterChip active={aggregate} onClick={() => { setAggregate(v => !v); if (sortCol === 'set_name') setSortCol('missing') }}>
+          Merge same card
         </FilterChip>
 
         {/* Summary + export */}
@@ -268,7 +292,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
         <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
           Loading…
         </div>
-      ) : sortedRows.length === 0 ? (
+      ) : displayRows.length === 0 ? (
         <div style={{ padding: '3rem', textAlign: 'center', fontFamily: 'var(--font-d)', fontSize: '1rem', color: 'rgba(26,58,92,0.35)' }}>
           No cards to acquire for this filter — looking good!
         </div>
@@ -278,7 +302,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
           <thead>
             <tr>
               <SortTh col="name">Card</SortTh>
-              <SortTh col="set_name">Set</SortTh>
+              {!aggregate && <SortTh col="set_name">Set</SortTh>}
               <SortTh col="supertype">Type</SortTh>
               <SortTh col="missing">Missing ↓</SortTh>
               <SortTh col="ordered">Ordered</SortTh>
@@ -287,16 +311,18 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
             </tr>
           </thead>
           <tbody>
-            {sortedRows.map((row, i) => (
-              <tr key={`${row.name}-${i}`} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}>
+            {displayRows.map((row, i) => (
+              <tr key={`${row.name}-${row.set_id ?? 'agg'}-${i}`} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}>
                 <td style={{ ...tdBase, fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>
                   {row.name}
                 </td>
+                {!aggregate && (
                 <td style={{ ...tdBase, fontSize: '0.75rem', color: 'rgba(26,58,92,0.5)' }}>
                   {row.set_name
                     ? <>{row.set_name}{row.number && <span style={{ marginLeft: 4, fontSize: '0.68rem', color: 'rgba(26,58,92,0.35)', fontFamily: 'monospace' }}>#{row.number}</span>}</>
                     : <span style={{ color: 'rgba(26,58,92,0.25)' }}>—</span>}
                 </td>
+                )}
                 <td style={{ ...tdBase, color: 'rgba(26,58,92,0.5)', fontSize: '0.78rem' }}>{row.supertype}</td>
                 <td style={{ ...tdBase, fontWeight: 900, color: row.missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)', fontSize: '1rem', fontFamily: 'var(--font-d)' }}>
                   {row.missing > 0 ? row.missing : '—'}
@@ -355,7 +381,7 @@ export function StatsPage() {
   const eras: EraOption[] = decks
     .reduce<EraOption[]>((acc, d) => {
       if (!acc.find(e => e.slug === d.era_slug))
-        acc.push({ slug: d.era_slug, label: d.era, color: d.era_color })
+        acc.push({ slug: d.era_slug, label: d.era_name, color: d.era_color })
       return acc
     }, [])
 

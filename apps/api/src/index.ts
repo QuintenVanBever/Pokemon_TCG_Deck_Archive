@@ -372,13 +372,51 @@ app.get('/api/search', async c => {
 // ── Admin routes ───────────────────────────────────────────────────────
 
 app.get('/api/admin/pokemontcg/search', async c => {
-  const q   = c.req.query('q')   ?? ''
-  const set = c.req.query('set') ?? ''
-  if (!q.trim()) return c.json({ data: [] })
-  const nameQ = `name:"${q.trim().replace(/"/g, '')}*"`
-  const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(nameQ)}${set ? `+${encodeURIComponent(`set.id:${set}`)}` : ''}&pageSize=20&select=id,name,images,set,supertype,types`
+  const q         = c.req.query('q')          ?? ''
+  const set       = c.req.query('set')        ?? ''
+  const ptcgoCode = c.req.query('ptcgo_code') ?? ''
+  const number    = c.req.query('number')     ?? ''
+  const cardId    = c.req.query('card_id')    ?? ''
+
+  if (!q.trim() && !ptcgoCode && !set.trim() && !cardId.trim()) return c.json({ data: [] })
+
+  const apiKey = c.env.POKEMONTCG_API_KEY ?? ''
+  const SELECT = 'id,name,images,set,supertype,types,number'
+
   try {
-    const res  = await fetch(url, { headers: { 'X-Api-Key': c.env.POKEMONTCG_API_KEY ?? '' } })
+    // Card ID — wildcard query so partial inputs like "g1-2" match g1-2, g1-20, g1-21…
+    if (cardId.trim()) {
+      const q = `id:${cardId.trim().replace(/\s+/g, '')}*`
+      const res  = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=20&select=${SELECT}`, { headers: { 'X-Api-Key': apiKey } })
+      const json = await res.json<any>()
+      return c.json({ data: json.data ?? [], error: null })
+    }
+
+    // Pure set search — search by set name with wildcard, paginate to return every card
+    if (set.trim() && !q.trim() && !ptcgoCode) {
+      const setQ = `set.name:"${set.trim().replace(/"/g, '')}*"`
+      const all: any[] = []
+      for (let page = 1; page <= 5; page++) {
+        const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(setQ)}&pageSize=250&page=${page}&orderBy=number&select=${SELECT}`
+        const res  = await fetch(url, { headers: { 'X-Api-Key': apiKey } })
+        const json = await res.json<any>()
+        const batch: any[] = json.data ?? []
+        all.push(...batch)
+        if (all.length >= (json.totalCount ?? 0) || batch.length === 0) break
+      }
+      return c.json({ data: all, error: null })
+    }
+
+    // Name / combined search — regular 20-result query
+    const parts: string[] = []
+    if (q.trim()) {
+      const safe = q.trim().replace(/"/g, '')
+      parts.push(ptcgoCode ? `name:"${safe}"` : `name:"${safe}*"`)
+    }
+    if (set)       parts.push(`set.id:${set}`)
+    if (ptcgoCode) parts.push(`set.ptcgoCode:${ptcgoCode}`)
+    if (number)    parts.push(`number:${number}`)
+    const res  = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=20&select=${SELECT}`, { headers: { 'X-Api-Key': apiKey } })
     const json = await res.json<any>()
     return c.json({ data: json.data ?? [], error: json.error ?? null })
   } catch (e) {
@@ -467,11 +505,31 @@ app.delete('/api/admin/eras/:id', async c => {
 
 // ── Cards ──────────────────────────────────────────────────────────────
 
+app.get('/api/admin/sets', async c => {
+  const formatId = c.req.query('format_id') ?? ''
+  let sql = `SELECT DISTINCT c.set_id, c.set_name FROM cards c
+    WHERE c.set_id IS NOT NULL AND c.set_name IS NOT NULL`
+  const params: any[] = []
+  if (formatId) {
+    const fmt = await c.env.DB.prepare('SELECT era_id, regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
+    if (fmt) {
+      if (fmt.legal_set_ids)     { sql += ' AND c.set_id IN (SELECT value FROM json_each(?))'; params.push(fmt.legal_set_ids) }
+      else if (fmt.regulation_marks) { sql += ' AND c.regulation_mark IN (SELECT value FROM json_each(?))'; params.push(fmt.regulation_marks) }
+      else if (fmt.era_id)       { sql += ' AND c.era_block_id = ?'; params.push(fmt.era_id) }
+    }
+  }
+  sql += ' ORDER BY c.set_name'
+  const { results } = await c.env.DB.prepare(sql).bind(...params).all()
+  return c.json({ data: results })
+})
+
 app.get('/api/admin/cards', async c => {
-  const name      = c.req.query('name')      ?? ''
-  const supertype = c.req.query('supertype') ?? ''
-  const era       = c.req.query('era')       ?? ''
-  const formatId  = c.req.query('format_id') ?? ''
+  const name         = c.req.query('name')           ?? ''
+  const supertype    = c.req.query('supertype')     ?? ''
+  const era          = c.req.query('era')           ?? ''
+  const formatId     = c.req.query('format_id')    ?? ''
+  const pokemontcgId = c.req.query('pokemontcg_id') ?? ''
+  const set          = c.req.query('set')           ?? ''
   let sql = `
     SELECT c.id, c.pokemontcg_id, c.name, c.display_name, c.supertype, c.energy_type,
            c.set_id, c.set_name, c.set_series, c.era_block_id,
@@ -480,9 +538,12 @@ app.get('/api/admin/cards', async c => {
     FROM cards c LEFT JOIN era_blocks eb ON eb.id = c.era_block_id
     WHERE 1=1`
   const params: any[] = []
+  if (pokemontcgId) { sql += ' AND c.pokemontcg_id = ?'; params.push(pokemontcgId) }
   if (name)      { sql += ' AND (c.name LIKE ? OR c.display_name LIKE ?)'; params.push(`%${name}%`, `%${name}%`) }
   if (supertype) { sql += ' AND c.supertype = ?'; params.push(supertype) }
-  if (era)       { sql += ' AND eb.slug = ?'; params.push(era) }
+  if (set)       { sql += ' AND (c.set_id LIKE ? OR c.set_name LIKE ?)'; params.push(`%${set}%`, `%${set}%`) }
+  if (era === '__none__') { sql += ' AND c.era_block_id IS NULL' }
+  else if (era) { sql += ' AND eb.slug = ?'; params.push(era) }
   if (formatId) {
     const fmt = await c.env.DB.prepare('SELECT era_id, regulation_marks, legal_set_ids FROM formats WHERE id = ?').bind(Number(formatId)).first() as any
     if (fmt) {

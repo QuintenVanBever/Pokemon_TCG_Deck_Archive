@@ -180,12 +180,22 @@ export async function fetchEra(slug: string): Promise<EraBlock | null> {
   return json.data
 }
 
-export async function fetchAdminCards(params?: { name?: string; supertype?: string; era?: string; format_id?: number }): Promise<AdminCard[]> {
+export async function fetchAdminCardSets(format_id?: number): Promise<{ set_id: string; set_name: string }[]> {
+  const url = new URL(`${BASE}/api/admin/sets`, window.location.href)
+  if (format_id) url.searchParams.set('format_id', String(format_id))
+  const res  = await adminFetch(url.toString())
+  const json = await res.json() as { data: { set_id: string; set_name: string }[] }
+  return json.data
+}
+
+export async function fetchAdminCards(params?: { name?: string; supertype?: string; era?: string; set?: string; format_id?: number; pokemontcg_id?: string }): Promise<AdminCard[]> {
   const url = new URL(`${BASE}/api/admin/cards`, window.location.href)
-  if (params?.name)      url.searchParams.set('name',      params.name)
-  if (params?.supertype) url.searchParams.set('supertype', params.supertype)
-  if (params?.era)       url.searchParams.set('era',       params.era)
-  if (params?.format_id) url.searchParams.set('format_id', String(params.format_id))
+  if (params?.name)          url.searchParams.set('name',          params.name)
+  if (params?.supertype)     url.searchParams.set('supertype',     params.supertype)
+  if (params?.era)           url.searchParams.set('era',           params.era)
+  if (params?.set)           url.searchParams.set('set',           params.set)
+  if (params?.format_id)     url.searchParams.set('format_id',     String(params.format_id))
+  if (params?.pokemontcg_id) url.searchParams.set('pokemontcg_id', params.pokemontcg_id)
   const res  = await adminFetch(url.toString())
   const json = await res.json() as { data: AdminCard[] }
   return json.data
@@ -223,8 +233,14 @@ export async function fetchPtcgSets(): Promise<PtcgSet[]> {
   return json.data
 }
 
-export async function searchPokemontcg(q: string): Promise<{ data: any[]; error: string | null }> {
-  const res  = await adminFetch(`${BASE}/api/admin/pokemontcg/search?q=${encodeURIComponent(q)}`)
+export async function searchPokemontcg(q: string, opts?: { ptcgo_code?: string; number?: string; set_id?: string; card_id?: string }): Promise<{ data: any[]; error: string | null }> {
+  const url = new URL(`${BASE}/api/admin/pokemontcg/search`, window.location.href)
+  if (q)                url.searchParams.set('q',          q)
+  if (opts?.ptcgo_code) url.searchParams.set('ptcgo_code', opts.ptcgo_code)
+  if (opts?.number)     url.searchParams.set('number',     opts.number)
+  if (opts?.set_id)     url.searchParams.set('set',        opts.set_id)
+  if (opts?.card_id)    url.searchParams.set('card_id',    opts.card_id)
+  const res  = await adminFetch(url.toString())
   const json = await res.json() as { data?: any[]; error?: string | null }
   return { data: json.data ?? [], error: json.error ?? null }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
-import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchFormats, searchPokemontcg, BASE } from '../../lib/api'
+import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchAdminCardSets, fetchFormats, searchPokemontcg, BASE } from '../../lib/api'
 import { ENERGY_META } from '../../data/decks'
 import { adminFetch } from '../../lib/adminAuth'
 import type { DeckDetail, DeckCard, EraBlock, AdminCard, Format } from '../../lib/api'
@@ -10,8 +10,8 @@ import type { EnergyType } from '../../data/decks'
 const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water'] as const
 
 type ParsedLine   = { count: number; name: string; set: string; number: string }
-type ImportStatus = 'found' | 'auto-imported' | 'not-found'
-type ImportResult = ParsedLine & { card: AdminCard | null; status: ImportStatus }
+type ImportStatus = 'found' | 'needs-import' | 'not-found'
+type ImportResult = ParsedLine & { card: AdminCard | null; ptcgCard: any | null; status: ImportStatus }
 
 function parseTcgLive(text: string): ParsedLine[] {
   const map = new Map<string, ParsedLine>()
@@ -68,12 +68,16 @@ export function AdminDeckEditPage() {
   const [query,          setQuery]          = useState('')
   const [results,        setResults]        = useState<AdminCard[]>([])
   const [searchFormatId, setSearchFormatId] = useState(0)
+  const [searchSet,      setSearchSet]      = useState('')
+  const [setOptions,     setSetOptions]     = useState<{ set_id: string; set_name: string }[]>([])
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Per-row editing state
   const [qtys, setQtys] = useState<Record<number, { qty_real: number; qty_proxy: number; qty_missing: number; qty_ordered: number }>>({})
   const [fanSlots, setFanSlots] = useState<Record<number, number | null>>({})
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveError, setSaveError]       = useState<string | null>(null)
+  const [savingAll, setSavingAll]       = useState(false)
+  const [saveAllDone, setSaveAllDone]   = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
 
@@ -81,11 +85,12 @@ export function AdminDeckEditPage() {
   const [cardPreview, setCardPreview] = useState<{ url: string; x: number; y: number } | null>(null)
 
   // TCG Live import state
-  const [importOpen,    setImportOpen]    = useState(false)
-  const [importText,    setImportText]    = useState('')
-  const [importResults, setImportResults] = useState<ImportResult[] | null>(null)
-  const [importBusy,    setImportBusy]    = useState(false)
-  const [importMessage, setImportMessage] = useState<string | null>(null)
+  const [importOpen,     setImportOpen]     = useState(false)
+  const [importText,     setImportText]     = useState('')
+  const [importResults,  setImportResults]  = useState<ImportResult[] | null>(null)
+  const [importCardEras, setImportCardEras] = useState<Record<number, number>>({})
+  const [importBusy,     setImportBusy]     = useState(false)
+  const [importMessage,  setImportMessage]  = useState<string | null>(null)
 
   const load = async () => {
     const d = await fetchDeck(slug)
@@ -106,6 +111,11 @@ export function AdminDeckEditPage() {
 
   useEffect(() => { load(); fetchEraBlocks().then(setBlocks); fetchFormats().then(setFormats) }, [slug])
 
+  useEffect(() => {
+    setSearchSet('')
+    fetchAdminCardSets(searchFormatId || undefined).then(setSetOptions)
+  }, [searchFormatId])
+
   const saveMeta = async () => {
     if (!deck) return
     await adminFetch(`${BASE}/api/admin/decks/${deck.id}`, {
@@ -118,13 +128,14 @@ export function AdminDeckEditPage() {
     await load()
   }
 
-  const searchCards = (q: string, fmtId?: number) => {
+  const searchCards = (q: string, fmtId?: number, set?: string) => {
     const fmtVal = fmtId ?? searchFormatId
+    const setVal = set  ?? searchSet
     setQuery(q)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       if (!q.trim()) { setResults([]); return }
-      const r = await fetchAdminCards({ name: q, format_id: fmtVal || undefined })
+      const r = await fetchAdminCards({ name: q, format_id: fmtVal || undefined, set: setVal || undefined })
       setResults(r.slice(0, 12))
     }, 300)
   }
@@ -152,20 +163,30 @@ export function AdminDeckEditPage() {
     load()
   }
 
-  const saveCard = async (deckCardId: number) => {
-    if (!deck || !qtys[deckCardId]) return
-    const q = qtys[deckCardId]
-    const fan_slot = fanSlots[deckCardId] ?? null
-    setSaveError(null)
-    const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...q, fan_slot }),
+  const saveAll = async () => {
+    if (!deck) return
+    setSavingAll(true); setSaveError(null); setSaveAllDone(false)
+    const toSave = deck.cards.filter(c => {
+      const q = qtys[c.deck_card_id]
+      if (!q) return false
+      return q.qty_real !== c.qty_real || q.qty_proxy !== c.qty_proxy ||
+             q.qty_missing !== c.qty_missing || q.qty_ordered !== c.qty_ordered ||
+             (fanSlots[c.deck_card_id] ?? null) !== c.fan_slot
     })
-    if (!res.ok) {
-      const json = await res.json() as { error?: string }
-      setSaveError(json.error ?? 'Save failed')
-      return
+    const results = await Promise.all(toSave.map(c =>
+      adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${c.deck_card_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...qtys[c.deck_card_id], fan_slot: fanSlots[c.deck_card_id] ?? null }),
+      })
+    ))
+    const failed = results.filter(r => !r.ok)
+    setSavingAll(false)
+    if (failed.length > 0) {
+      setSaveError(`${failed.length} card${failed.length !== 1 ? 's' : ''} failed to save`)
+    } else {
+      setSaveAllDone(true)
+      setTimeout(() => setSaveAllDone(false), 2000)
     }
     load()
   }
@@ -178,39 +199,43 @@ export function AdminDeckEditPage() {
   }
 
   const parseAndLookup = async () => {
+    if (!deck) return
     const lines = parseTcgLive(importText)
     if (!lines.length) return
     setImportBusy(true); setImportResults(null); setImportMessage(null)
     const results: ImportResult[] = []
     for (const line of lines) {
-      // 1 — local DB lookup
-      let cards = await fetchAdminCards({ name: line.name })
-      let card: AdminCard | null =
-        cards.length === 1 ? cards[0]
-        : cards.find(c => c.pokemontcg_id?.split('-').pop() === line.number) ?? cards[0] ?? null
+      // 1 — local DB lookup by name
+      const localCards    = await fetchAdminCards({ name: line.name })
+      const numberMatches = localCards.filter(c => c.pokemontcg_id?.split('-').pop() === line.number)
 
-      if (card) { results.push({ ...line, card, status: 'found' }); continue }
+      // Unambiguous local hit — no external API call needed
+      if (numberMatches.length === 1) {
+        results.push({ ...line, card: numberMatches[0], ptcgCard: null, status: 'found' }); continue
+      }
 
-      // 2 — not in local DB → try PokemonTCG API
-      const ptcgRes = await searchPokemontcg(line.name)
-      const ptcgCard = ptcgRes.data.find((c: any) => c.id.split('-').pop() === line.number)
-        ?? ptcgRes.data[0] ?? null
+      // 2 — ambiguous or missing locally → resolve via pokemontcg.io (set ptcgo code + number)
+      const ptcgRes  = await searchPokemontcg(line.name, { ptcgo_code: line.set, number: line.number })
+      const ptcgCard = ptcgRes.data[0] ?? null
 
-      if (!ptcgCard) { results.push({ ...line, card: null, status: 'not-found' }); continue }
+      if (ptcgCard) {
+        // 3 — already in local DB under this exact pokemontcg_id?
+        const exact = localCards.find(c => c.pokemontcg_id === ptcgCard.id) ?? null
+        if (exact) { results.push({ ...line, card: exact, ptcgCard: null, status: 'found' }); continue }
 
-      // 3 — auto-import into local DB
-      const importRes = await adminFetch(`${BASE}/api/admin/cards/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pokemontcg_id: ptcgCard.id }),
-      })
-      if (!importRes.ok) { results.push({ ...line, card: null, status: 'not-found' }); continue }
+        // 4 — not in local DB → defer import to doImport so user can pick era first
+        results.push({ ...line, card: null, ptcgCard, status: 'needs-import' })
+        continue
+      }
 
-      // 4 — re-fetch local record
-      cards = await fetchAdminCards({ name: line.name })
-      card = cards.find(c => c.pokemontcg_id === ptcgCard.id) ?? cards[0] ?? null
-      results.push({ ...line, card, status: card ? 'auto-imported' : 'not-found' })
+      // 5 — pokemontcg.io found nothing → best local guess or not-found
+      const fallback = numberMatches[0] ?? localCards[0] ?? null
+      results.push({ ...line, card: fallback, ptcgCard: null, status: fallback ? 'found' : 'not-found' })
     }
+    // Default per-card era to the deck's era
+    const eraInit: Record<number, number> = {}
+    results.forEach((_, i) => { eraInit[i] = deck.era_block_id })
+    setImportCardEras(eraInit)
     setImportResults(results)
     setImportBusy(false)
   }
@@ -219,24 +244,45 @@ export function AdminDeckEditPage() {
     if (!deck || !importResults) return
     setImportBusy(true)
     const existingNames = new Set(deck.cards.map(c => c.name))
-    const toImport = importResults.filter(r => r.card && !existingNames.has(r.card.name))
-    let ok = 0; let capped = 0
-    for (const r of toImport) {
+    let ok = 0; let skipped = 0
+
+    for (let i = 0; i < importResults.length; i++) {
+      const r = importResults[i]
+      if (r.status === 'not-found') continue
+
+      let cardId = r.card?.id
+
+      // needs-import: first import the card into the local DB with the selected era
+      if (!cardId && r.ptcgCard) {
+        if (existingNames.has(r.ptcgCard.name)) continue
+        const eraBlockId = importCardEras[i] ?? deck.era_block_id
+        const importRes = await adminFetch(`${BASE}/api/admin/cards/import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pokemontcg_id: r.ptcgCard.id, era_block_id: eraBlockId || undefined }),
+        })
+        if (!importRes.ok) { skipped++; continue }
+        const json = await importRes.json() as { id?: number }
+        cardId = json.id
+      }
+
+      if (!cardId || existingNames.has(r.card?.name ?? '')) continue
+
       const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          card_id: r.card!.id,
+          card_id:     cardId,
           qty_real:    mode === 'real'    ? r.count : 0,
           qty_proxy:   mode === 'proxy'   ? r.count : 0,
           qty_missing: mode === 'missing' ? r.count : 0,
           qty_ordered: 0,
         }),
       })
-      if (res.ok) ok++; else capped++
+      if (res.ok) ok++; else skipped++
     }
-    setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''} as ${mode}${capped > 0 ? ` · ${capped} skipped (deck limit reached)` : ''}`)
-    setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false)
+    setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''} as ${mode}${skipped > 0 ? ` · ${skipped} skipped` : ''}`)
+    setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false); setImportCardEras({})
     load()
   }
 
@@ -361,8 +407,9 @@ export function AdminDeckEditPage() {
             {duplicateWarning}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ ...S.field, position: 'relative', flex: '1 1 220px', maxWidth: 320 }}>
+            <label style={S.label}>Card name</label>
             <input
               style={S.input}
               value={query}
@@ -384,6 +431,17 @@ export function AdminDeckEditPage() {
             )}
           </div>
           <div style={S.field}>
+            <label style={S.label}>Set</label>
+            <select
+              style={{ ...S.select, width: 180 }}
+              value={searchSet}
+              onChange={e => { setSearchSet(e.target.value); searchCards(query, undefined, e.target.value) }}
+            >
+              <option value="">All sets</option>
+              {setOptions.map(s => <option key={s.set_id} value={s.set_id}>{s.set_name}</option>)}
+            </select>
+          </div>
+          <div style={S.field}>
             <label style={S.label}>Format</label>
             <select style={S.select} value={searchFormatId} onChange={e => { const id = Number(e.target.value); setSearchFormatId(id); searchCards(query, id) }}>
               <option value={0}>All formats</option>
@@ -399,7 +457,7 @@ export function AdminDeckEditPage() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#888' }}>Import from TCG Live</div>
           <button
             style={S.btnS}
-            onClick={() => { setImportOpen(o => !o); setImportResults(null); setImportMessage(null) }}
+            onClick={() => { setImportOpen(o => !o); setImportResults(null); setImportMessage(null); setImportCardEras({}) }}
           >
             {importOpen ? 'Cancel' : 'Paste decklist ↓'}
           </button>
@@ -432,28 +490,61 @@ export function AdminDeckEditPage() {
                 <table style={{ ...S.table, marginTop: 10 }}>
                   <thead>
                     <tr>
-                      {['Qty', 'Parsed name', 'Set', '#', 'Matched card', 'Status'].map(h => (
+                      <th style={{ ...S.th, width: 36 }}></th>
+                      {['Qty', 'Parsed name', 'Set', '#', 'Matched card', 'Era', 'Status'].map(h => (
                         <th key={h} style={S.th}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {importResults.map((r, i) => {
-                      const already = !!deck.cards.find(c => c.name === r.card?.name)
+                      const matchedName = r.card?.name ?? r.ptcgCard?.name ?? null
+                      const already = matchedName ? !!deck.cards.find(c => c.name === matchedName) : false
+                      const imgUrl = r.card?.image_ext_url ?? (r.ptcgCard?.images?.small ?? null)
                       return (
                         <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.02)' }}>
+                          <td style={{ ...S.td, width: 44, padding: '4px 8px' }}>
+                            {imgUrl && (
+                              <img
+                                src={imgUrl}
+                                alt=""
+                                style={{ height: 44, aspectRatio: '63/88', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+                                onMouseEnter={e => {
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                  setCardPreview({ url: imgUrl, x: rect.right + 12, y: rect.top })
+                                }}
+                                onMouseLeave={() => setCardPreview(null)}
+                              />
+                            )}
+                          </td>
                           <td style={S.td}>{r.count}</td>
                           <td style={{ ...S.td, fontWeight: 600 }}>{r.name}</td>
                           <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.set}</td>
                           <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.number}</td>
-                          <td style={S.td}>{r.card ? (r.card.display_name ?? r.card.name) : '—'}</td>
+                          <td style={S.td}>{r.card ? (r.card.display_name ?? r.card.name) : r.ptcgCard?.name ?? '—'}</td>
+                          <td style={{ ...S.td, minWidth: 120 }}>
+                            {r.status === 'needs-import' ? (
+                              <select
+                                value={importCardEras[i] ?? deck.era_block_id}
+                                onChange={e => setImportCardEras(prev => ({ ...prev, [i]: Number(e.target.value) }))}
+                                style={{ ...S.select, fontSize: 11, padding: '2px 4px' }}
+                              >
+                                <option value={0}>— none —</option>
+                                {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                              </select>
+                            ) : r.card?.era_name ? (
+                              <span style={{ fontSize: 11, color: '#888' }}>{r.card.era_name}</span>
+                            ) : (
+                              <span style={{ color: '#ccc' }}>—</span>
+                            )}
+                          </td>
                           <td style={S.td}>
                             {already
                               ? <span style={{ color: '#888', fontSize: 11 }}>already in deck</span>
                               : r.status === 'found'
                                 ? <span style={{ color: '#2E8B57', fontSize: 11, fontWeight: 700 }}>✓ found</span>
-                                : r.status === 'auto-imported'
-                                  ? <span style={{ color: '#1E78C4', fontSize: 11, fontWeight: 700 }}>⬇ auto-imported</span>
+                                : r.status === 'needs-import'
+                                  ? <span style={{ color: '#1E78C4', fontSize: 11, fontWeight: 700 }}>⬇ will import</span>
                                   : <span style={{ color: '#CC3333', fontSize: 11, fontWeight: 700 }}>✗ not found</span>}
                           </td>
                         </tr>
@@ -463,8 +554,13 @@ export function AdminDeckEditPage() {
                 </table>
 
                 {(() => {
-                  const importable = importResults.filter(r => r.card && !deck.cards.find(c => c.name === r.card!.name))
-                  const notFound   = importResults.filter(r => !r.card).length
+                  const existingNames = new Set(deck.cards.map(c => c.name))
+                  const importable = importResults.filter(r => {
+                    if (r.status === 'not-found') return false
+                    if (r.status === 'needs-import') return r.ptcgCard && !existingNames.has(r.ptcgCard.name)
+                    return r.card && !existingNames.has(r.card.name)
+                  })
+                  const notFound = importResults.filter(r => r.status === 'not-found').length
                   return (
                     <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <button style={S.btnP} onClick={() => doImport('real')}
@@ -498,17 +594,40 @@ export function AdminDeckEditPage() {
             {saveError}
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: totalCards > deck.intended_size ? '#CC3333' : '#888' }}>
-            Cards ({totalCards} / {deck.intended_size})
-          </div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888' }}>
-            <span style={{ color: '#2E8B57' }}>● Real: {liveReal}</span>
-            <span style={{ color: '#7B52C4' }}>● Proxy: {liveProxy}</span>
-            {liveMissing > 0 && <span style={{ color: '#CC3333' }}>● Missing: {liveMissing}</span>}
-            {liveOrdered > 0 && <span style={{ color: '#1E78C4' }}>● Ordered: {liveOrdered}</span>}
-          </div>
-        </div>
+        {(() => {
+          const changedCount = deck.cards.filter(c => {
+            const q = qtys[c.deck_card_id]
+            if (!q) return false
+            return q.qty_real !== c.qty_real || q.qty_proxy !== c.qty_proxy ||
+                   q.qty_missing !== c.qty_missing || q.qty_ordered !== c.qty_ordered ||
+                   (fanSlots[c.deck_card_id] ?? null) !== c.fan_slot
+          }).length
+          return (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: totalCards > deck.intended_size ? '#CC3333' : '#888' }}>
+                  Cards ({totalCards} / {deck.intended_size})
+                </div>
+                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888' }}>
+                  <span style={{ color: '#2E8B57' }}>● Real: {liveReal}</span>
+                  <span style={{ color: '#7B52C4' }}>● Proxy: {liveProxy}</span>
+                  {liveMissing > 0 && <span style={{ color: '#CC3333' }}>● Missing: {liveMissing}</span>}
+                  {liveOrdered > 0 && <span style={{ color: '#1E78C4' }}>● Ordered: {liveOrdered}</span>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {saveAllDone && <span style={{ fontSize: 12, color: '#2E8B57' }}>✓ Saved</span>}
+                <button
+                  style={{ ...S.btnP, opacity: changedCount === 0 || savingAll ? 0.5 : 1 }}
+                  onClick={saveAll}
+                  disabled={changedCount === 0 || savingAll}
+                >
+                  {savingAll ? 'Saving…' : changedCount > 0 ? `Save ${changedCount} change${changedCount !== 1 ? 's' : ''}` : 'No changes'}
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Single unified table for all card types */}
         {deck.cards.length === 0 ? (
@@ -527,7 +646,7 @@ export function AdminDeckEditPage() {
                 <th style={{ ...S.th, textAlign: 'center' }}>Ordered</th>
                 <th style={{ ...S.th, textAlign: 'center' }}>Total</th>
                 <th style={{ ...S.th, textAlign: 'center' }}>Fan</th>
-                <th style={{ ...S.th, width: 170 }}></th>
+                <th style={{ ...S.th, width: 120 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -553,7 +672,7 @@ export function AdminDeckEditPage() {
                     const update = (field: keyof typeof q, v: number) => setQtys(prev => ({ ...prev, [c.deck_card_id]: { ...q, [field]: v } }))
                     const isConfirming = deleteConfirm === c.deck_card_id
                     return (
-                      <tr key={c.deck_card_id}>
+                      <tr key={c.deck_card_id} style={{ borderLeft: changed ? '3px solid #F59E0B' : '3px solid transparent' }}>
                         <td style={{ ...S.td, width: 52, padding: '4px 8px' }}>
                           {c.image_url && (
                             <img
@@ -586,7 +705,7 @@ export function AdminDeckEditPage() {
                             <option value="3">3</option>
                           </select>
                         </td>
-                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right', width: 170 }}>
+                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right', width: 120 }}>
                           {isConfirming ? (
                             <>
                               <span style={{ fontSize: 12, color: '#CC3333', marginRight: 6 }}>Remove?</span>
@@ -594,10 +713,7 @@ export function AdminDeckEditPage() {
                               <button style={S.btnS} onClick={() => setDeleteConfirm(null)}>No</button>
                             </>
                           ) : (
-                            <>
-                              <button style={{ ...S.btnP, marginRight: 4, visibility: changed ? 'visible' : 'hidden' }} onClick={() => saveCard(c.deck_card_id)}>Save</button>
-                              <button style={S.btnD} onClick={() => setDeleteConfirm(c.deck_card_id)}>✕</button>
-                            </>
+                            <button style={S.btnD} onClick={() => setDeleteConfirm(c.deck_card_id)}>✕</button>
                           )}
                         </td>
                       </tr>

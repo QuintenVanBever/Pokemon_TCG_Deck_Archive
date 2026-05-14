@@ -32,7 +32,7 @@ type DeleteModal = { cardId: number; cardName: string; decks: { id: number; name
 export function AdminCardsPage() {
   const [cards,   setCards]   = useState<AdminCard[]>([])
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
-  const [filters, setFilters] = useState({ name: '', supertype: '', era: '' })
+  const [filters, setFilters] = useState({ name: '', supertype: '', era: '', set: '' })
   const [form,    setForm]    = useState<CardForm | null>(null)
   const [editId,  setEditId]  = useState<number | null>(null)
   const [showImport, setShowImport] = useState(false)
@@ -41,8 +41,9 @@ export function AdminCardsPage() {
   const [cardPreview, setCardPreview] = useState<{ url: string; x: number; y: number } | null>(null)
 
   // Import state
-  const [importQ,      setImportQ]      = useState('')
-  const [importEra,    setImportEra]    = useState('')
+  const [importMode,    setImportMode]    = useState<'name' | 'set' | 'card_id'>('name')
+  const [importQ,       setImportQ]       = useState('')
+  const [importEra,     setImportEra]     = useState('')
   const [importResults, setImportResults] = useState<any[]>([])
   const [importError,   setImportError]   = useState<string | null>(null)
   const [importLoading, setImportLoading] = useState(false)
@@ -92,17 +93,29 @@ export function AdminCardsPage() {
     load()
   }
 
-  const doSearch = (q: string) => {
+  const IMPORT_MODES = [
+    { id: 'name'    as const, label: 'Name',    placeholder: 'Type to search pokemontcg.io…' },
+    { id: 'set'     as const, label: 'Set',     placeholder: 'e.g. Generations, Base Set…' },
+    { id: 'card_id' as const, label: 'Card ID', placeholder: 'e.g. g1-26, sv1-6…' },
+  ]
+
+  const doSearch = (q: string, mode = importMode) => {
     setImportQ(q)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     if (!q.trim()) { setImportResults([]); setImportError(null); return }
     searchTimer.current = setTimeout(async () => {
       setImportLoading(true); setImportError(null)
-      const result = await searchPokemontcg(q)
+      const result = mode === 'name'    ? await searchPokemontcg(q)
+                   : mode === 'set'     ? await searchPokemontcg('', { set_id: q })
+                   :                     await searchPokemontcg('', { card_id: q })
       setImportLoading(false)
       setImportResults(result.data)
       if (result.error) setImportError(result.error)
-      else if (!result.data.length) setImportError('No cards found for that name')
+      else if (!result.data.length) setImportError(
+        mode === 'name'    ? 'No cards found for that name' :
+        mode === 'set'     ? 'No cards found for that set ID' :
+                             'Card not found'
+      )
     }, 400)
   }
 
@@ -157,6 +170,10 @@ export function AdminCardsPage() {
           <input style={{ ...S.input, width: 200 }} value={filters.name} onChange={e => setFilters(f => ({ ...f, name: e.target.value }))} placeholder="Name or display name…" />
         </div>
         <div style={S.field}>
+          <label style={S.label}>Set</label>
+          <input style={{ ...S.input, width: 160 }} value={filters.set} onChange={e => setFilters(f => ({ ...f, set: e.target.value }))} placeholder="Name or set ID…" />
+        </div>
+        <div style={S.field}>
           <label style={S.label}>Supertype</label>
           <select style={S.select} value={filters.supertype} onChange={e => setFilters(f => ({ ...f, supertype: e.target.value }))}>
             <option value="">All</option>
@@ -167,6 +184,7 @@ export function AdminCardsPage() {
           <label style={S.label}>Era</label>
           <select style={S.select} value={filters.era} onChange={e => setFilters(f => ({ ...f, era: e.target.value }))}>
             <option value="">All</option>
+            <option value="__none__">No era</option>
             {blocks.map(b => <option key={b.slug} value={b.slug}>{b.name}</option>)}
           </select>
         </div>
@@ -178,14 +196,33 @@ export function AdminCardsPage() {
       {showImport && (
         <div style={S.card}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#444', marginBottom: 10 }}>Import from pokemontcg.io</div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap' }}>
             <div style={S.field}>
-              <label style={S.label}>Card name</label>
+              <label style={S.label}>Search by</label>
+              <div style={{ display: 'flex' }}>
+                {IMPORT_MODES.map((m, i) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setImportMode(m.id); setImportQ(''); setImportResults([]); setImportError(null) }}
+                    style={{
+                      padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      border: '1.5px solid #D0D5DD',
+                      borderRight: i < IMPORT_MODES.length - 1 ? 'none' : '1.5px solid #D0D5DD',
+                      background: importMode === m.id ? '#1a3a5c' : '#fff',
+                      color:      importMode === m.id ? '#fff'    : '#555',
+                    }}
+                  >{m.label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>&nbsp;</label>
               <input
+                key={importMode}
                 style={{ ...S.input, width: 240 }}
                 value={importQ}
                 onChange={e => doSearch(e.target.value)}
-                placeholder="Type to search pokemontcg.io…"
+                placeholder={IMPORT_MODES.find(m => m.id === importMode)!.placeholder}
                 autoFocus
               />
             </div>
@@ -323,8 +360,8 @@ export function AdminCardsPage() {
             <th style={S.th}></th>
             <th style={S.th}>ID / pokemontcg_id</th>
             <th style={S.th}>Name</th>
-            <th style={S.th}>Display name</th>
             <th style={S.th}>Set</th>
+            <th style={S.th}>Era</th>
             <th style={S.th}>Type</th>
             <th style={S.th}>Custom</th>
             <th style={S.th}></th>
@@ -349,12 +386,12 @@ export function AdminCardsPage() {
                 <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>
                   {c.pokemontcg_id ?? `#${c.id}`}
                 </td>
-                <td style={{ ...S.td, fontWeight: 700 }}>{c.name}</td>
-                <td style={{ ...S.td, color: '#666', fontStyle: c.display_name ? 'normal' : 'italic' }}>
-                  {c.display_name ?? <span style={{ color: '#ccc' }}>—</span>}
-                </td>
+                <td style={{ ...S.td, fontWeight: 700 }}>{c.display_name ? c.display_name : c.name}</td>
                 <td style={{ ...S.td, color: '#888', fontSize: 12 }}>
                   {c.set_name ? `${c.set_name} (${c.set_id})` : c.era_name ?? '—'}
+                </td>
+                <td style={{ ...S.td, color: '#888', fontSize: 12 }}>
+                  {c.era_name ? `${c.era_name}` : c.era_name ?? '—'}
                 </td>
                 <td style={S.td}>{c.supertype}</td>
                 <td style={S.td}>{c.is_custom ? '✓' : ''}</td>
