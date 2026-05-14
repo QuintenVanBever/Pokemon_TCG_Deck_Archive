@@ -222,10 +222,10 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
           </select>
         </div>
 
-        <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
+        <div className="stats-filter-sep" style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
 
         {/* Type chips */}
-        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)', marginRight: 4 }}>Type</span>
           {typeChips.map(t => (
             <FilterChip key={t.key} active={typeFilter === t.key} onClick={() => setTypeFilter(t.key)}>{t.label}</FilterChip>
@@ -235,7 +235,7 @@ function BuyListTab({ eras }: { eras: EraOption[] }) {
         {/* Set dropdown — hidden when aggregating by name */}
         {!aggregate && setOptions.length > 0 && (
           <>
-            <div style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
+            <div className="stats-filter-sep" style={{ width: 1, height: 18, background: 'rgba(26,58,92,0.12)' }} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(26,58,92,0.35)' }}>Set</span>
               <select
