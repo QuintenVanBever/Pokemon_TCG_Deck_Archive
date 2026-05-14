@@ -154,7 +154,7 @@ export function AdminLayout() {
       </div>
 
       {/* Main content */}
-      <div style={{ overflowY: 'auto', background: '#F5F7FA' }}>
+      <div style={{ overflowY: 'auto', overflowX: 'hidden', background: '#F5F7FA' }}>
         {/* Mobile menu bar */}
         <div className="admin-menu-btn" style={{
           display: 'none', alignItems: 'center', gap: 10,

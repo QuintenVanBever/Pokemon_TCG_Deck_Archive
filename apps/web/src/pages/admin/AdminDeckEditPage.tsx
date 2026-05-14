@@ -309,7 +309,7 @@ export function AdminDeckEditPage() {
   }
 
   return (
-    <div style={S.page}>
+    <div style={S.page} className="admin-page">
       <div style={{ marginBottom: 16 }}>
         <Link to="/admin/decks" style={{ fontSize: 12, color: '#888', textDecoration: 'none' }}>← Decks</Link>
       </div>
@@ -487,6 +487,7 @@ export function AdminDeckEditPage() {
 
             {importResults && (
               <>
+                <div className="scroll-x">
                 <table style={{ ...S.table, marginTop: 10 }}>
                   <thead>
                     <tr>
@@ -552,6 +553,7 @@ export function AdminDeckEditPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
 
                 {(() => {
                   const existingNames = new Set(deck.cards.map(c => c.name))
@@ -635,6 +637,7 @@ export function AdminDeckEditPage() {
             No cards yet — search for cards above to add them
           </div>
         ) : (
+          <div className="scroll-x">
           <table style={S.table}>
             <thead>
               <tr>
@@ -723,6 +726,7 @@ export function AdminDeckEditPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -134,7 +134,7 @@ export function AdminDecksPage() {
   )
 
   return (
-    <div style={S.page}>
+    <div style={S.page} className="admin-page">
       <h1 style={S.heading}>Decks</h1>
 
       {/* Create form */}
@@ -245,6 +245,7 @@ export function AdminDecksPage() {
           </span>
         </div>
 
+        <div className="scroll-x">
         <table style={S.table}>
           <thead><tr>
             <SortTh col="name">Name</SortTh>
@@ -292,6 +293,7 @@ export function AdminDecksPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

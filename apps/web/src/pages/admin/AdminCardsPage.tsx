@@ -160,7 +160,7 @@ export function AdminCardsPage() {
         </div>
       </div>
     )}
-    <div style={S.page}>
+    <div style={S.page} className="admin-page">
       <h1 style={S.heading}>Card Catalog</h1>
 
       {/* Filters */}
@@ -355,6 +355,7 @@ export function AdminCardsPage() {
       {/* Cards table */}
       <div style={S.card}>
         <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>{cards.length} cards</div>
+        <div className="scroll-x">
         <table style={S.table}>
           <thead><tr>
             <th style={S.th}></th>
@@ -406,6 +407,7 @@ export function AdminCardsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
