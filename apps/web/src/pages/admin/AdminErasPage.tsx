@@ -64,7 +64,7 @@ export function AdminErasPage() {
   }
 
   return (
-    <div style={S.page}>
+    <div style={S.page} className="admin-page">
       <h1 style={S.heading}>Eras</h1>
       <p style={{ fontSize: 12, color: '#888', marginBottom: 20 }}>
         Each era maps to a pokemontcg.io series and holds the rules primer shown on the public era page.
@@ -150,6 +150,7 @@ export function AdminErasPage() {
 
       {/* Eras list */}
       <div style={S.card}>
+        <div className="scroll-x">
         <table style={S.table}>
           <thead>
             <tr>
@@ -184,6 +185,7 @@ export function AdminErasPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

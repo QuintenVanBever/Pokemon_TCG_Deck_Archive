@@ -179,7 +179,7 @@ export function AdminFormatsPage() {
   )
 
   return (
-    <div style={S.page}>
+    <div style={S.page} className="admin-page">
       <h1 style={S.heading}>Formats</h1>
 
       {/* Form */}
@@ -410,6 +410,7 @@ export function AdminFormatsPage() {
           </span>
         </div>
 
+        <div className="scroll-x">
         <table style={S.table}>
           <thead>
             <tr>
@@ -473,6 +474,7 @@ export function AdminFormatsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
