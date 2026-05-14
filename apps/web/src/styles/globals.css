@@ -183,6 +183,9 @@ img { display: block; max-width: 100%; }
   /* Admin pages: reduce padding on mobile */
   .admin-page { padding: 12px 16px !important; }
 
+  /* Stats buy-list: hide separators that orphan onto their own row */
+  .stats-filter-sep { display: none !important; }
+
   /* Navigation: hide wordmark, tighten paddings */
   .nav-wordmark  { display: none !important; }
   .nav-logo      { padding: 0 0.75rem !important; }
