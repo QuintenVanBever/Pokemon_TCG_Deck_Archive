@@ -101,7 +101,7 @@ app.get('/api/era-blocks/:id', async c => {
 // /api/eras — now returns era_blocks (Eras in the new model)
 app.get('/api/eras', async c => {
   const { results } = await c.env.DB.prepare(
-    'SELECT id, slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks ORDER BY sort_order'
+    'SELECT id, slug, key, name, color, dark, badge_text_color, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks ORDER BY sort_order'
   ).all()
   return c.json({ data: results })
 })
@@ -109,7 +109,7 @@ app.get('/api/eras', async c => {
 app.get('/api/eras/:slug', async c => {
   const { slug } = c.req.param()
   const era = await c.env.DB.prepare(
-    'SELECT id, slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks WHERE slug = ?'
+    'SELECT id, slug, key, name, color, dark, badge_text_color, sort_order, ptcg_series, rules_primer, rules_json FROM era_blocks WHERE slug = ?'
   ).bind(slug).first()
   if (!era) return c.json({ data: null }, 404)
   return c.json({ data: era })
@@ -124,7 +124,7 @@ app.get('/api/decks', async c => {
     SELECT
       d.id, d.slug, d.name, d.energy_type, d.energy_types, d.intended_size,
       eb.key  AS era,       eb.slug AS era_slug, eb.name AS era_name,
-      eb.color AS era_color, eb.dark AS era_dark,
+      eb.color AS era_color, eb.dark AS era_dark, eb.badge_text_color AS era_badge_text_color,
       f.slug  AS format,    f.name  AS format_name,
       SUM(dc.qty_real)    AS count_real,
       SUM(dc.qty_proxy)   AS count_proxy,
@@ -171,8 +171,9 @@ app.get('/api/decks', async c => {
       era:       row.era,
       era_slug:  row.era_slug,
       era_name:  row.era_name,
-      era_color: row.era_color,
-      era_dark:  row.era_dark,
+      era_color:            row.era_color,
+      era_dark:             row.era_dark,
+      era_badge_text_color: row.era_badge_text_color ?? '#ffffff',
       format:        row.format,
       format_name:   row.format_name ?? null,
       intended_size: row.intended_size ?? 60,
@@ -199,7 +200,7 @@ app.get('/api/decks/:slug', async c => {
         d.primer_md, d.manual_status, d.intended_size,
         d.format_id, d.era_block_id,
         eb.key  AS era,        eb.slug AS era_slug, eb.name AS era_name,
-        eb.color AS era_color,  eb.dark AS era_dark,
+        eb.color AS era_color,  eb.dark AS era_dark, eb.badge_text_color AS era_badge_text_color,
         f.slug  AS format,     f.name  AS format_name
       FROM decks d
       JOIN era_blocks eb ON eb.id = d.era_block_id
@@ -249,8 +250,9 @@ app.get('/api/decks/:slug', async c => {
       era:          deck.era,
       era_slug:     deck.era_slug,
       era_name:     deck.era_name,
-      era_color:    deck.era_color,
-      era_dark:     deck.era_dark,
+      era_color:            deck.era_color,
+      era_dark:             deck.era_dark,
+      era_badge_text_color: deck.era_badge_text_color ?? '#ffffff',
       format:       deck.format,
       format_name:  deck.format_name,
       counts,
@@ -423,13 +425,13 @@ app.delete('/api/admin/formats/:id', async c => {
 app.post('/api/admin/era-blocks', async c => {
   const body = await c.req.json<any>()
   const { meta } = await c.env.DB.prepare(
-    'INSERT INTO era_blocks (slug, key, name, color, dark, sort_order, ptcg_series, rules_primer, rules_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(body.slug, body.key, body.name, body.color, body.dark, body.sort_order ?? 0, body.ptcg_series ?? null, body.rules_primer ?? null, body.rules_json ?? null).run()
+    'INSERT INTO era_blocks (slug, key, name, color, dark, badge_text_color, sort_order, ptcg_series, rules_primer, rules_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(body.slug, body.key, body.name, body.color, body.dark, body.badge_text_color ?? '#ffffff', body.sort_order ?? 0, body.ptcg_series ?? null, body.rules_primer ?? null, body.rules_json ?? null).run()
   return c.json({ success: true, id: meta.last_row_id })
 })
 app.patch('/api/admin/era-blocks/:id', async c => {
   const id = Number(c.req.param('id')); const body = await c.req.json<any>()
-  const fields = ['slug', 'key', 'name', 'color', 'dark', 'sort_order', 'ptcg_series', 'rules_primer', 'rules_json']
+  const fields = ['slug', 'key', 'name', 'color', 'dark', 'badge_text_color', 'sort_order', 'ptcg_series', 'rules_primer', 'rules_json']
   const sets: string[] = []; const params: any[] = []
   for (const f of fields) { if (f in body) { sets.push(`${f} = ?`); params.push(body[f] ?? null) } }
   if (sets.length) { params.push(id); await c.env.DB.prepare(`UPDATE era_blocks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run() }

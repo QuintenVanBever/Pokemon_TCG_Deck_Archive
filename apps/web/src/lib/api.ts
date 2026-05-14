@@ -16,8 +16,9 @@ export interface DeckSummary {
   era: string       // 'HGSS', 'BW', …
   era_slug: string  // 'hgss', 'bw', …
   era_name: string  // 'HGSS Block', …
-  era_color: string
-  era_dark: string
+  era_color:            string
+  era_dark:             string
+  era_badge_text_color: string
   format:        string   // slug, e.g. 'hgss-block-modified'
   format_name?:  string  // display name
   intended_size: number
@@ -33,6 +34,7 @@ export interface EraBlock {
   name: string
   color: string
   dark: string
+  badge_text_color: string
   sort_order: number
   ptcg_series:  string | null
   rules_primer: string | null

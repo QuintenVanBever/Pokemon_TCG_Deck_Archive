@@ -7,7 +7,7 @@ import { adminFetch } from '../../lib/adminAuth'
 type EraForm = Omit<EraBlock, 'id'>
 
 const empty = (): EraForm => ({
-  slug: '', key: '', name: '', color: '#888888', dark: '#444444', sort_order: 0,
+  slug: '', key: '', name: '', color: '#888888', dark: '#444444', badge_text_color: '#ffffff', sort_order: 0,
   ptcg_series: '', rules_primer: '', rules_json: '',
 })
 
@@ -24,7 +24,7 @@ export function AdminErasPage() {
 
   const openEdit = (b: EraBlock) => {
     setForm({
-      slug: b.slug, key: b.key, name: b.name, color: b.color, dark: b.dark,
+      slug: b.slug, key: b.key, name: b.name, color: b.color, dark: b.dark, badge_text_color: b.badge_text_color,
       sort_order: b.sort_order,
       ptcg_series:  b.ptcg_series  ?? '',
       rules_primer: b.rules_primer ?? '',
@@ -78,10 +78,10 @@ export function AdminErasPage() {
           </div>
 
           {/* Identity row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 80px 80px 100px 100px', gap: 10, marginBottom: 12 }}>
-            {(['name', 'key', 'slug', 'sort_order', 'color', 'dark'] as const).map(f => (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 80px 80px 80px 100px 100px 100px', gap: 10, marginBottom: 12 }}>
+            {(['name', 'key', 'slug', 'sort_order', 'color', 'dark', 'badge_text_color'] as const).map(f => (
               <div key={f} style={S.field}>
-                <label style={S.label}>{f === 'sort_order' ? 'Order' : f.charAt(0).toUpperCase() + f.slice(1)}</label>
+                <label style={S.label}>{f === 'sort_order' ? 'Order' : f === 'badge_text_color' ? 'Badge text' : f.charAt(0).toUpperCase() + f.slice(1)}</label>
                 <input
                   style={{ ...S.input, ...(f === 'slug' || f === 'key' ? { fontFamily: 'monospace' } : {}) }}
                   type={f === 'sort_order' ? 'number' : 'text'}
@@ -158,7 +158,6 @@ export function AdminErasPage() {
               <th style={S.th}>Name</th>
               <th style={{ ...S.th, fontFamily: 'monospace' }}>Slug</th>
               <th style={S.th}>pokemontcg.io Series</th>
-              <th style={S.th}>Primer</th>
               <th style={S.th}>Order</th>
               <th style={S.th}></th>
             </tr>
@@ -168,17 +167,11 @@ export function AdminErasPage() {
               <tr key={b.id} style={{ background: editId === b.id ? '#F5F8FF' : undefined }}>
                 <td style={{ ...S.td, color: '#aaa', fontSize: 11 }}>{b.id}</td>
                 <td style={S.td}>
-                  <span style={{ display: 'inline-block', background: b.color, color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 900 }}>{b.key}</span>
+                  <span style={{ display: 'inline-block', background: b.color, color: b.badge_text_color, padding: '2px 8px', fontSize: 11, fontWeight: 900 }}>{b.key}</span>
                 </td>
                 <td style={{ ...S.td, fontWeight: 700 }}>{b.name}</td>
                 <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>{b.slug}</td>
                 <td style={{ ...S.td, fontSize: 12, color: '#666' }}>{b.ptcg_series ?? <span style={{ color: '#ccc' }}>—</span>}</td>
-                <td style={S.td}>
-                  {b.rules_primer
-                    ? <span style={{ fontSize: 11, color: '#2E8B57' }}>✓ {b.rules_primer.length} chars</span>
-                    : <span style={{ color: '#ccc', fontSize: 11 }}>empty</span>
-                  }
-                </td>
                 <td style={S.td}>{b.sort_order}</td>
                 <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
                   <button style={{ ...S.btnS, marginRight: 4 }} onClick={() => openEdit(b)}>Edit</button>

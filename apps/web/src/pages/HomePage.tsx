@@ -213,7 +213,7 @@ function FilterStrip({
   label, chips, active, onSelect,
 }: {
   label: string
-  chips: Array<{ key: string; label: string; color?: string }>
+  chips: Array<{ key: string; label: string; color?: string; textColor?: string }>
   active: string
   onSelect: (key: string) => void
 }) {
@@ -245,7 +245,7 @@ function FilterStrip({
               fontFamily: 'var(--font-d)', fontSize: '0.68rem', letterSpacing: '0.04em',
               border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
               background: isActive ? (chip.color ?? 'rgba(91,192,222,0.25)') : 'transparent',
-              color: isActive ? (chip.color ? '#fff' : 'var(--sky)') : 'rgba(255,255,255,0.32)',
+              color: isActive ? (chip.color ? (chip.textColor ?? '#fff') : 'var(--sky)') : 'rgba(255,255,255,0.32)',
               transition: 'background 0.14s, color 0.14s',
             }}
             onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)' } }}
@@ -342,7 +342,7 @@ export function HomePage() {
     { key: 'all', label: 'All Eras' },
     ...usedEras.map(slug => {
       const deck = decks.find(d => d.era_slug === slug)!
-      return { key: slug, label: deck.era, color: deck.era_color }
+      return { key: slug, label: deck.era, color: deck.era_color, textColor: deck.era_badge_text_color }
     }),
   ]
 

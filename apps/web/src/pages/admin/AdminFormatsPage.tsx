@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { adminS as S } from './AdminLayout'
 import { fetchFormats, fetchEraBlocks, BASE } from '../../lib/api'
 import type { Format, EraBlock } from '../../lib/api'
@@ -45,6 +45,12 @@ export function AdminFormatsPage() {
   const [eras,     setEras]     = useState<EraBlock[]>([])
   const [form,     setForm]     = useState<FormatForm | null>(null)
   const [editId,   setEditId]   = useState<number | null>(null)
+
+  // Filter + sort state
+  const [eraFilter, setEraFilter] = useState('')
+  type SortCol = 'name' | 'era'
+  const [sortCol, setSortCol] = useState<SortCol>('era')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   // Set browser state
   const [allSets,     setAllSets]     = useState<PtcgSet[]>([])
@@ -132,6 +138,45 @@ export function AdminFormatsPage() {
   const setMap = Object.fromEntries(allSets.map(s => [s.id, s]))
 
   const eraName = (eraId: number | null) => eras.find(e => e.id === eraId)?.name ?? '—'
+
+  const eraOrderById = useMemo(() => {
+    const map: Record<number, number> = {}
+    eras.forEach(e => { map[e.id] = e.sort_order })
+    return map
+  }, [eras])
+
+  const filteredFormats = useMemo(() => {
+    let result = eraFilter
+      ? formats.filter(f => String(f.era_id) === eraFilter)
+      : [...formats]
+
+    result.sort((a, b) => {
+      const eraA = a.era_id ? (eraOrderById[a.era_id] ?? 99) : 99
+      const eraB = b.era_id ? (eraOrderById[b.era_id] ?? 99) : 99
+      let cmp = 0
+      if (sortCol === 'era') {
+        cmp = eraA - eraB || a.name.localeCompare(b.name)
+      } else {
+        cmp = a.name.localeCompare(b.name)
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return result
+  }, [formats, eraFilter, sortCol, sortDir, eraOrderById])
+
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const SortTh = ({ col, children, style }: { col: SortCol; children: React.ReactNode; style?: React.CSSProperties }) => (
+    <th
+      onClick={() => toggleSort(col)}
+      style={{ ...S.th, cursor: 'pointer', userSelect: 'none', color: sortCol === col ? '#1a3a5c' : undefined, ...style }}
+    >
+      {children}{sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+    </th>
+  )
 
   return (
     <div style={S.page}>
@@ -344,13 +389,33 @@ export function AdminFormatsPage() {
 
       {/* Formats list */}
       <div style={S.card}>
+        {/* Filter bar */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
+          <div style={S.field}>
+            <label style={S.label}>Era</label>
+            <select
+              style={S.select}
+              value={eraFilter}
+              onChange={e => setEraFilter(e.target.value)}
+            >
+              <option value="">All eras</option>
+              {eras.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </div>
+          {eraFilter && (
+            <button style={S.btnS} onClick={() => setEraFilter('')}>Clear</button>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa', alignSelf: 'center' }}>
+            {filteredFormats.length} / {formats.length} formats
+          </span>
+        </div>
+
         <table style={S.table}>
           <thead>
             <tr>
-              <th style={S.th}>#</th>
-              <th style={S.th}>Name</th>
+              <SortTh col="name">Name</SortTh>
               <th style={{ ...S.th, fontFamily: 'monospace' }}>Slug</th>
-              <th style={S.th}>Era</th>
+              <SortTh col="era">Era</SortTh>
               <th style={S.th}>Type</th>
               <th style={S.th}>Reg. Marks</th>
               <th style={S.th}>Legal Sets</th>
@@ -358,12 +423,11 @@ export function AdminFormatsPage() {
             </tr>
           </thead>
           <tbody>
-            {formats.map(f => {
+            {filteredFormats.map(f => {
               const marks: string[]  = f.regulation_marks ? JSON.parse(f.regulation_marks) : []
               const setIds: string[] = f.legal_set_ids    ? JSON.parse(f.legal_set_ids)    : []
               return (
                 <tr key={f.id}>
-                  <td style={{ ...S.td, color: '#aaa', fontSize: 11 }}>{f.id}</td>
                   <td style={{ ...S.td, fontWeight: 700 }}>{f.name}</td>
                   <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>{f.slug}</td>
                   <td style={{ ...S.td, fontSize: 12 }}>
@@ -402,8 +466,10 @@ export function AdminFormatsPage() {
                 </tr>
               )
             })}
-            {formats.length === 0 && (
-              <tr><td colSpan={8} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>No formats yet</td></tr>
+            {filteredFormats.length === 0 && (
+              <tr><td colSpan={8} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>
+                {formats.length === 0 ? 'No formats yet' : 'No formats match the current filter'}
+              </td></tr>
             )}
           </tbody>
         </table>

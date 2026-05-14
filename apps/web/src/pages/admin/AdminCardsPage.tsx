@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { adminS as S } from './AdminLayout'
 import { fetchAdminCards, fetchEraBlocks, searchPokemontcg, BASE } from '../../lib/api'
 import type { AdminCard, EraBlock } from '../../lib/api'
@@ -38,6 +38,7 @@ export function AdminCardsPage() {
   const [showImport, setShowImport] = useState(false)
   const [deleteModal, setDeleteModal] = useState<DeleteModal>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [cardPreview, setCardPreview] = useState<{ url: string; x: number; y: number } | null>(null)
 
   // Import state
   const [importQ,      setImportQ]      = useState('')
@@ -214,8 +215,19 @@ export function AdminCardsPage() {
                 <tbody>
                   {importResults.map((r: any) => (
                     <tr key={r.id}>
-                      <td style={{ ...S.td, width: 44 }}>
-                        {r.images?.small && <img src={r.images.small} alt="" style={{ height: 38 }} />}
+                      <td style={{ ...S.td, width: 52, padding: '4px 8px' }}>
+                        {r.images?.small && (
+                          <img
+                            src={r.images.small}
+                            alt=""
+                            style={{ height: 52, aspectRatio: '63/88', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+                            onMouseEnter={e => {
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                              setCardPreview({ url: r.images.small, x: rect.right + 12, y: rect.top })
+                            }}
+                            onMouseLeave={() => setCardPreview(null)}
+                          />
+                        )}
                       </td>
                       <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>{r.id}</td>
                       <td style={{ ...S.td, fontWeight: 700 }}>{r.name}</td>
@@ -320,8 +332,19 @@ export function AdminCardsPage() {
           <tbody>
             {cards.map(c => (
               <tr key={c.id}>
-                <td style={{ ...S.td, width: 40 }}>
-                  {imgSrc(c) && <img src={imgSrc(c)!} alt="" style={{ height: 34 }} />}
+                <td style={{ ...S.td, width: 52, padding: '4px 8px' }}>
+                  {imgSrc(c) && (
+                    <img
+                      src={imgSrc(c)!}
+                      alt=""
+                      style={{ height: 52, aspectRatio: '63/88', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+                      onMouseEnter={e => {
+                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        setCardPreview({ url: imgSrc(c)!, x: r.right + 12, y: r.top })
+                      }}
+                      onMouseLeave={() => setCardPreview(null)}
+                    />
+                  )}
                 </td>
                 <td style={{ ...S.td, fontFamily: 'monospace', fontSize: 11, color: '#888' }}>
                   {c.pokemontcg_id ?? `#${c.id}`}
@@ -348,6 +371,17 @@ export function AdminCardsPage() {
         </table>
       </div>
     </div>
+
+      {cardPreview && (
+        <div style={{
+          position: 'fixed', left: cardPreview.x, top: cardPreview.y,
+          zIndex: 9999, pointerEvents: 'none',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          borderRadius: 6, overflow: 'hidden',
+        }}>
+          <img src={cardPreview.url} alt="" style={{ height: 260, aspectRatio: '63/88', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
     </>
   )
 }

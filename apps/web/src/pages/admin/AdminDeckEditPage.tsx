@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
 import { fetchDeck, fetchEraBlocks, fetchAdminCards, fetchFormats, searchPokemontcg, BASE } from '../../lib/api'
@@ -76,6 +76,9 @@ export function AdminDeckEditPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+
+  // Card hover preview
+  const [cardPreview, setCardPreview] = useState<{ url: string; x: number; y: number } | null>(null)
 
   // TCG Live import state
   const [importOpen,    setImportOpen]    = useState(false)
@@ -212,7 +215,7 @@ export function AdminDeckEditPage() {
     setImportBusy(false)
   }
 
-  const doImport = async () => {
+  const doImport = async (mode: 'real' | 'proxy' | 'missing') => {
     if (!deck || !importResults) return
     setImportBusy(true)
     const existingNames = new Set(deck.cards.map(c => c.name))
@@ -222,11 +225,17 @@ export function AdminDeckEditPage() {
       const res = await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card_id: r.card!.id, qty_real: r.count, qty_proxy: 0, qty_missing: 0, qty_ordered: 0 }),
+        body: JSON.stringify({
+          card_id: r.card!.id,
+          qty_real:    mode === 'real'    ? r.count : 0,
+          qty_proxy:   mode === 'proxy'   ? r.count : 0,
+          qty_missing: mode === 'missing' ? r.count : 0,
+          qty_ordered: 0,
+        }),
       })
       if (res.ok) ok++; else capped++
     }
-    setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''}${capped > 0 ? ` · ${capped} skipped (deck limit reached)` : ''}`)
+    setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''} as ${mode}${capped > 0 ? ` · ${capped} skipped (deck limit reached)` : ''}`)
     setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false)
     load()
   }
@@ -453,18 +462,29 @@ export function AdminDeckEditPage() {
                   </tbody>
                 </table>
 
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <button
-                    style={S.btnP}
-                    onClick={doImport}
-                    disabled={importBusy || !importResults.some(r => r.card && !deck.cards.find(c => c.name === r.card!.name))}
-                  >
-                    {importBusy ? 'Importing…' : `Import ${importResults.filter(r => r.card && !deck.cards.find(c => c.name === r.card!.name)).length} cards as Real`}
-                  </button>
-                  <span style={{ fontSize: 11, color: '#aaa' }}>
-                    {importResults.filter(r => !r.card).length > 0 && `${importResults.filter(r => !r.card).length} not found will be skipped`}
-                  </span>
-                </div>
+                {(() => {
+                  const importable = importResults.filter(r => r.card && !deck.cards.find(c => c.name === r.card!.name))
+                  const notFound   = importResults.filter(r => !r.card).length
+                  return (
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button style={S.btnP} onClick={() => doImport('real')}
+                        disabled={importBusy || importable.length === 0}>
+                        {importBusy ? 'Importing…' : `Import ${importable.length} as Real`}
+                      </button>
+                      <button style={{ ...S.btnS, color: '#7B52C4', borderColor: '#C4B0F0' }} onClick={() => doImport('proxy')}
+                        disabled={importBusy || importable.length === 0}>
+                        Import {importable.length} as Proxy
+                      </button>
+                      <button style={{ ...S.btnD }} onClick={() => doImport('missing')}
+                        disabled={importBusy || importable.length === 0}>
+                        Import {importable.length} as Missing
+                      </button>
+                      {notFound > 0 && (
+                        <span style={{ fontSize: 11, color: '#aaa' }}>{notFound} not found will be skipped</span>
+                      )}
+                    </div>
+                  )
+                })()}
               </>
             )}
           </>
@@ -507,13 +527,13 @@ export function AdminDeckEditPage() {
                 <th style={{ ...S.th, textAlign: 'center' }}>Ordered</th>
                 <th style={{ ...S.th, textAlign: 'center' }}>Total</th>
                 <th style={{ ...S.th, textAlign: 'center' }}>Fan</th>
-                <th style={S.th}></th>
+                <th style={{ ...S.th, width: 170 }}></th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(grouped).map(([supertype, cards]) => (
-                <>
-                  <tr key={`section-${supertype}`}>
+                <React.Fragment key={supertype}>
+                  <tr>
                     <td colSpan={9} style={{
                       padding: '6px 12px 4px',
                       fontSize: 10, fontWeight: 900, letterSpacing: '0.12em',
@@ -534,9 +554,18 @@ export function AdminDeckEditPage() {
                     const isConfirming = deleteConfirm === c.deck_card_id
                     return (
                       <tr key={c.deck_card_id}>
-                        <td style={{ ...S.td, width: 36 }}>
+                        <td style={{ ...S.td, width: 52, padding: '4px 8px' }}>
                           {c.image_url && (
-                            <img src={c.image_url} alt="" style={{ height: 32, aspectRatio: '63/88', objectFit: 'cover', display: 'block' }} />
+                            <img
+                              src={c.image_url}
+                              alt=""
+                              style={{ height: 52, aspectRatio: '63/88', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
+                              onMouseEnter={e => {
+                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                setCardPreview({ url: c.image_url!, x: r.right + 12, y: r.top })
+                              }}
+                              onMouseLeave={() => setCardPreview(null)}
+                            />
                           )}
                         </td>
                         <td style={{ ...S.td, fontWeight: 700 }}>{c.name}</td>
@@ -557,7 +586,7 @@ export function AdminDeckEditPage() {
                             <option value="3">3</option>
                           </select>
                         </td>
-                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right', width: 170 }}>
                           {isConfirming ? (
                             <>
                               <span style={{ fontSize: 12, color: '#CC3333', marginRight: 6 }}>Remove?</span>
@@ -574,12 +603,23 @@ export function AdminDeckEditPage() {
                       </tr>
                     )
                   })}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {cardPreview && (
+        <div style={{
+          position: 'fixed', left: cardPreview.x, top: cardPreview.y,
+          zIndex: 9999, pointerEvents: 'none',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          borderRadius: 6, overflow: 'hidden',
+        }}>
+          <img src={cardPreview.url} alt="" style={{ height: 260, aspectRatio: '63/88', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
     </div>
   )
 }
