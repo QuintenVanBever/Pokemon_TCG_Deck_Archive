@@ -137,6 +137,27 @@ img { display: block; max-width: 100%; }
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 @media (max-width: 768px) {
+  /* Admin sidebar: slide-over on mobile */
+  .admin-layout  { grid-template-columns: 1fr !important; }
+  .admin-sidebar {
+    position: fixed !important;
+    top: var(--topbar-h) !important;
+    left: 0 !important; bottom: 0 !important;
+    width: 260px !important;
+    z-index: 500 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s ease !important;
+  }
+  .admin-sidebar.open { transform: translateX(0) !important; }
+  .admin-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 499;
+  }
+  .admin-backdrop.open { display: block; }
+  .admin-menu-btn { display: flex !important; }
+
   /* HeadlineGrid in StatsPage */
   .grid-4-to-2 { grid-template-columns: repeat(2, 1fr) !important; }
 

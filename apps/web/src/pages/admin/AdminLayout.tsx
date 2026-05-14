@@ -85,14 +85,17 @@ function PasswordGate({ onAuth }: { onAuth: () => void }) {
 
 export function AdminLayout() {
   const path   = useRouterState({ select: s => s.location.pathname })
-  const [authed, setAuthed] = useState(() => !!getAdminPassword())
+  const [authed, setAuthed]     = useState(() => !!getAdminPassword())
+  const [sidebarOpen, setSidebar] = useState(false)
 
   if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />
+
+  const close = () => setSidebar(false)
 
   const navLink = (to: string, label: string) => {
     const active = path.startsWith(to)
     return (
-      <Link key={to} to={to} style={{
+      <Link key={to} to={to} onClick={close} style={{
         display: 'block', padding: '10px 16px', textDecoration: 'none',
         fontSize: 13, fontWeight: 700,
         color: active ? 'var(--yellow)' : 'rgba(255,255,255,0.7)',
@@ -105,10 +108,27 @@ export function AdminLayout() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
-      <div style={{ background: '#0F1E2D', borderRight: '2px solid var(--yellow)', overflowY: 'auto', padding: '20px 0' }}>
-        <div style={{ padding: '0 16px 14px', fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
-          Admin
+    <div className="admin-layout" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', height: 'calc(100vh - var(--topbar-h))', overflow: 'hidden' }}>
+
+      {/* Backdrop (mobile only) */}
+      <div className={`admin-backdrop${sidebarOpen ? ' open' : ''}`} onClick={close} />
+
+      {/* Sidebar */}
+      <div className={`admin-sidebar${sidebarOpen ? ' open' : ''}`} style={{ background: '#0F1E2D', borderRight: '2px solid var(--yellow)', overflowY: 'auto', padding: '20px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 14px' }}>
+          <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
+            Admin
+          </span>
+          {/* Close button — only visible on mobile via CSS */}
+          <button
+            className="admin-menu-btn"
+            onClick={close}
+            style={{
+              display: 'none', alignItems: 'center', justifyContent: 'center',
+              background: 'transparent', border: 'none',
+              color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', padding: '0 2px',
+            }}
+          >✕</button>
         </div>
         {navLink('/admin/decks', 'Decks')}
         {navLink('/admin/cards', 'Cards')}
@@ -118,7 +138,7 @@ export function AdminLayout() {
         {navLink('/admin/formats', 'Formats')}
         {navLink('/admin/eras', 'Blocks & Eras')}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '16px 0' }} />
-        <Link to="/decks" style={{ display: 'block', padding: '8px 16px', textDecoration: 'none', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+        <Link to="/decks" onClick={close} style={{ display: 'block', padding: '8px 16px', textDecoration: 'none', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
           ← Public site
         </Link>
         <button
@@ -132,7 +152,27 @@ export function AdminLayout() {
           Lock admin
         </button>
       </div>
+
+      {/* Main content */}
       <div style={{ overflowY: 'auto', background: '#F5F7FA' }}>
+        {/* Mobile menu bar */}
+        <div className="admin-menu-btn" style={{
+          display: 'none', alignItems: 'center', gap: 10,
+          padding: '10px 16px',
+          background: '#0F1E2D', borderBottom: '2px solid var(--yellow)',
+        }}>
+          <button
+            onClick={() => setSidebar(true)}
+            style={{
+              background: 'transparent', border: 'none',
+              color: 'var(--yellow)', fontSize: 20, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', padding: 0,
+            }}
+          >☰</button>
+          <span style={{ fontFamily: 'var(--font-d)', fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+            {path.split('/').pop()?.replace(/-/g, ' ')}
+          </span>
+        </div>
         <Outlet />
       </div>
     </div>
