@@ -159,8 +159,20 @@ img { display: block; max-width: 100%; }
     overflow-y: visible !important;
   }
 
-  /* Navigation: hide wordmark on small screens */
-  .nav-wordmark { display: none !important; }
+  /* Navigation: hide wordmark, tighten paddings */
+  .nav-wordmark  { display: none !important; }
+  .nav-logo      { padding: 0 0.75rem !important; }
+  .nav-links     { padding: 0 !important; }
+  .nav-link      { padding: 0 0.6rem !important; font-size: 0.75rem !important; }
+  .nav-admin     { padding: 0 0.75rem !important; }
+
+  /* Status footer: hide non-essential pieces, show dots + numbers only */
+  .footer-brand   { display: none !important; }
+  .footer-sep     { display: none !important; }
+  .footer-summary { display: none !important; }
+  .footer-label   { display: none !important; }
+  .footer-stat    { gap: 0.3rem !important; }
+  .status-footer  { gap: 0.65rem !important; padding: 0 0.75rem !important; }
 }
 
 @media (max-width: 480px) {

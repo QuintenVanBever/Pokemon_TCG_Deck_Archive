@@ -23,6 +23,7 @@ export function Navigation() {
       {/* Logo */}
       <Link
         to="/decks"
+        className="nav-logo"
         style={{
           display: 'flex', alignItems: 'center',
           padding: '0 1.5rem', gap: '0.6rem',
@@ -50,7 +51,7 @@ export function Navigation() {
       </Link>
 
       {/* Nav links */}
-      <div style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '0 1rem' }}>
+      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', flex: 1, padding: '0 1rem' }}>
         {NAV_LINKS.map(({ to, label }) => {
           const active = pathname === to || pathname.startsWith(to + '/')
           const hovered = hoveredLink === to
@@ -58,6 +59,7 @@ export function Navigation() {
             <Link
               key={to}
               to={to}
+              className="nav-link"
               onMouseEnter={() => setHoveredLink(to)}
               onMouseLeave={() => setHoveredLink(null)}
               style={{
@@ -83,7 +85,7 @@ export function Navigation() {
       </div>
 
       {/* Right: admin button */}
-      <div style={{
+      <div className="nav-admin" style={{
         display: 'flex', alignItems: 'center',
         padding: '0 1.5rem', gap: '0.75rem',
         borderLeft: '2px solid rgba(255,255,255,0.1)',

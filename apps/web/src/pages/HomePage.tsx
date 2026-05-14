@@ -283,7 +283,7 @@ function StatusFooter({ decks }: { decks: DeckSummary[] }) {
   ]
 
   return (
-    <footer style={{
+    <footer className="status-footer" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
       zIndex: 100, height: 44,
       background: 'var(--navy)',
@@ -292,24 +292,24 @@ function StatusFooter({ decks }: { decks: DeckSummary[] }) {
       padding: '0 1rem', gap: '1rem',
       overflowX: 'auto',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+      <div className="footer-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
         <span style={{ width: 11, height: 11, background: 'var(--yellow)', display: 'block' }} />
         <span style={{ fontFamily: 'var(--font-d)', fontSize: '0.7rem', color: 'var(--yellow)' }}>
           Deck Archive
         </span>
       </div>
-      <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+      <div className="footer-sep" style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
       {stats.map(({ key, label }, i) => (
         <React.Fragment key={key}>
-          {i > 0 && <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', flexShrink: 0 }}>
+          {i > 0 && <div className="footer-sep" style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />}
+          <div className="footer-stat" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.72rem', flexShrink: 0 }}>
             <div style={{ width: 8, height: 8, background: STATUS_COLORS[key], flexShrink: 0 }} />
             <span style={{ fontWeight: 900, color: '#fff' }}>{tot[key]}</span>
-            <span style={{ color: 'rgba(255,255,255,0.32)', fontSize: '0.64rem' }}>{label}</span>
+            <span className="footer-label" style={{ color: 'rgba(255,255,255,0.32)', fontSize: '0.64rem' }}>{label}</span>
           </div>
         </React.Fragment>
       ))}
-      <div style={{ marginLeft: 'auto', fontSize: '0.64rem', color: 'rgba(255,255,255,0.22)' }}>
+      <div className="footer-summary" style={{ marginLeft: 'auto', fontSize: '0.64rem', color: 'rgba(255,255,255,0.22)' }}>
         <strong style={{ color: 'rgba(255,255,255,0.48)' }}>{totalCards}</strong> cards ·{' '}
         <strong style={{ color: 'rgba(255,255,255,0.48)' }}>{decks.length}</strong> decks
       </div>
