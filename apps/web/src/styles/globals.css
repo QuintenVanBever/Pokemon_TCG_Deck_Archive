@@ -139,6 +139,8 @@ img { display: block; max-width: 100%; }
 @media (max-width: 768px) {
   /* Admin sidebar: slide-over on mobile */
   .admin-layout  { grid-template-columns: 1fr !important; }
+  /* Prevent main content pane from scrolling horizontally */
+  .admin-main    { overflow-x: hidden !important; }
   .admin-sidebar {
     position: fixed !important;
     top: var(--topbar-h) !important;
