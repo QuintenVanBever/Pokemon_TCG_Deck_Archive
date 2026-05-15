@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { deriveDeckStatus } from '../data/decks'
-import { fetchDecks, fetchStatsOverview, fetchBuylist, type DeckSummary, type StatsOverview, type BuylistRow } from '../lib/api'
+import { fetchDecks, fetchStatsOverview, fetchBuylist, fetchCardSearch, fetchCardDecks, type DeckSummary, type StatsOverview, type BuylistRow, type CardSearchResult, type CardDeckRow } from '../lib/api'
 
 type TabId = 'per-deck' | 'buy-list' | 'per-card'
 type SortDir = 'asc' | 'desc'
@@ -364,6 +364,201 @@ function chipStyle(active: boolean, color?: string): React.CSSProperties {
   }
 }
 
+/* ── Per Card tab ──────────────────────────────────── */
+
+function PerCardTab() {
+  const [query,    setQuery]    = useState('')
+  const [cards,    setCards]    = useState<CardSearchResult[]>([])
+  const [selected, setSelected] = useState<CardSearchResult | null>(null)
+  const [decks,    setDecks]    = useState<CardDeckRow[]>([])
+  const [searching, setSearching] = useState(false)
+  const [loadingDecks, setLoadingDecks] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const search = (q: string) => {
+    setQuery(q)
+    if (timer.current) clearTimeout(timer.current)
+    if (!q.trim()) { setCards([]); setSelected(null); setDecks([]); return }
+    setSearching(true)
+    timer.current = setTimeout(async () => {
+      const results = await fetchCardSearch(q)
+      setCards(results)
+      setSearching(false)
+      // Auto-select if only one result
+      if (results.length === 1) selectCard(results[0])
+    }, 300)
+  }
+
+  const selectCard = async (card: CardSearchResult) => {
+    setSelected(card)
+    setLoadingDecks(true)
+    const rows = await fetchCardDecks(card.id)
+    setDecks(rows)
+    setLoadingDecks(false)
+  }
+
+  const tdBase: React.CSSProperties = { padding: '0.5rem 0.8rem', borderBottom: '1px solid rgba(26,58,92,0.05)' }
+  const thBase: React.CSSProperties = {
+    textAlign: 'left', fontFamily: 'var(--font-b)', fontSize: '0.6rem',
+    fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
+    color: 'rgba(26,58,92,0.4)', padding: '0.55rem 0.8rem',
+    borderBottom: '2px solid rgba(26,58,92,0.08)', background: 'rgba(26,58,92,0.03)',
+  }
+
+  return (
+    <div>
+      {/* Search input */}
+      <Panel style={{ padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+        <input
+          value={query}
+          onChange={e => search(e.target.value)}
+          placeholder="Search for a card — e.g. Judge, Boss's Orders, Charizard…"
+          style={{
+            width: '100%', padding: '0.6rem 0.9rem', fontSize: '0.95rem',
+            border: '1.5px solid rgba(26,58,92,0.18)', fontFamily: 'var(--font-b)',
+            color: 'var(--navy)', outline: 'none', boxSizing: 'border-box',
+          }}
+          autoFocus
+        />
+      </Panel>
+
+      {/* Card results list */}
+      {(cards.length > 0 || searching) && (
+        <Panel style={{ marginBottom: '1.25rem' }}>
+          {searching ? (
+            <div style={{ padding: '1.5rem', textAlign: 'center', color: 'rgba(26,58,92,0.35)', fontFamily: 'var(--font-d)' }}>Searching…</div>
+          ) : (
+            <div className="scroll-x">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <thead>
+                <tr>
+                  {['', 'Card', 'Set', 'Type', 'In Decks', 'Real', 'Proxy', 'Missing', 'Ordered'].map(h => (
+                    <th key={h} style={thBase}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cards.map((card, i) => {
+                  const isSelected = selected?.id === card.id
+                  return (
+                    <tr
+                      key={card.id}
+                      onClick={() => selectCard(card)}
+                      style={{
+                        background: isSelected ? 'rgba(26,58,92,0.06)' : i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)',
+                        cursor: 'pointer',
+                        borderLeft: isSelected ? '3px solid var(--navy)' : '3px solid transparent',
+                      }}
+                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(26,58,92,0.03)' }}
+                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}
+                    >
+                      <td style={{ ...tdBase, width: 44, padding: '4px 8px' }}>
+                        {card.image_url
+                          ? <img src={card.image_url} alt="" style={{ height: 44, aspectRatio: '63/88', objectFit: 'cover', display: 'block' }} />
+                          : <div style={{ width: 31, height: 44, background: 'rgba(26,58,92,0.06)' }} />}
+                      </td>
+                      <td style={{ ...tdBase, fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>
+                        {card.name}
+                        {card.era_name && (
+                          <span style={{ display: 'inline-block', marginLeft: 6, background: card.era_color ?? '#888', color: '#fff', fontSize: '0.58rem', fontWeight: 900, padding: '1px 5px', verticalAlign: 'middle' }}>
+                            {card.era_name}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...tdBase, fontSize: '0.75rem', color: 'rgba(26,58,92,0.5)' }}>
+                        {card.set_name ?? <span style={{ color: 'rgba(26,58,92,0.25)' }}>—</span>}
+                        {card.pokemontcg_id && (
+                          <span style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: 'rgba(26,58,92,0.3)' }}>{card.pokemontcg_id}</span>
+                        )}
+                      </td>
+                      <td style={{ ...tdBase, fontSize: '0.75rem', color: 'rgba(26,58,92,0.45)' }}>{card.supertype}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: card.deck_count > 0 ? 'var(--navy)' : 'rgba(26,58,92,0.25)' }}>
+                        {card.deck_count > 0 ? `${card.deck_count} deck${card.deck_count !== 1 ? 's' : ''}` : '—'}
+                      </td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: card.total_real    > 0 ? 'var(--real)'    : 'rgba(26,58,92,0.2)' }}>{card.total_real    || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: card.total_proxy   > 0 ? 'var(--proxy)'   : 'rgba(26,58,92,0.2)' }}>{card.total_proxy   || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: card.total_missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)' }}>{card.total_missing || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: card.total_ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.2)' }}>{card.total_ordered || '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            </div>
+          )}
+        </Panel>
+      )}
+
+      {/* Deck breakdown for selected card */}
+      {selected && (
+        <Panel>
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '2px solid rgba(26,58,92,0.08)', background: 'rgba(26,58,92,0.02)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {selected.image_url && <img src={selected.image_url} alt="" style={{ height: 36, aspectRatio: '63/88', objectFit: 'cover' }} />}
+            <div>
+              <div style={{ fontFamily: 'var(--font-d)', fontSize: '1rem', fontWeight: 600, color: 'var(--navy)' }}>{selected.name}</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(26,58,92,0.45)' }}>
+                {selected.set_name ?? selected.supertype}
+                {selected.pokemontcg_id && <span style={{ marginLeft: 6, fontFamily: 'monospace', color: 'rgba(26,58,92,0.3)' }}>{selected.pokemontcg_id}</span>}
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '1.25rem', fontSize: '0.75rem' }}>
+              {selected.total_real    > 0 && <span style={{ fontWeight: 700, color: 'var(--real)'    }}>{selected.total_real} real</span>}
+              {selected.total_proxy   > 0 && <span style={{ fontWeight: 700, color: 'var(--proxy)'   }}>{selected.total_proxy} proxy</span>}
+              {selected.total_missing > 0 && <span style={{ fontWeight: 700, color: 'var(--missing)' }}>{selected.total_missing} missing</span>}
+              {selected.total_ordered > 0 && <span style={{ fontWeight: 700, color: 'var(--ordered)' }}>{selected.total_ordered} ordered</span>}
+            </div>
+          </div>
+          {loadingDecks ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(26,58,92,0.35)', fontFamily: 'var(--font-d)' }}>Loading…</div>
+          ) : decks.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(26,58,92,0.35)', fontFamily: 'var(--font-d)' }}>Not used in any deck</div>
+          ) : (
+            <div className="scroll-x">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <thead>
+                <tr>
+                  {['Deck', 'Era', 'Real', 'Proxy', 'Missing', 'Ordered', 'Total'].map(h => (
+                    <th key={h} style={thBase}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {decks.map((d, i) => {
+                  const total = d.qty_real + d.qty_proxy + d.qty_missing + d.qty_ordered
+                  return (
+                    <tr key={d.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(26,58,92,0.015)' }}>
+                      <td style={{ ...tdBase, fontFamily: 'var(--font-d)', fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>{d.name}</td>
+                      <td style={tdBase}>
+                        <span style={{ display: 'inline-block', background: d.era_color, color: d.era_badge_text_color, fontSize: '0.6rem', fontWeight: 900, padding: '1px 6px' }}>
+                          {d.era_name}
+                        </span>
+                      </td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: d.qty_real    > 0 ? 'var(--real)'    : 'rgba(26,58,92,0.2)' }}>{d.qty_real    || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: d.qty_proxy   > 0 ? 'var(--proxy)'   : 'rgba(26,58,92,0.2)' }}>{d.qty_proxy   || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: d.qty_missing > 0 ? 'var(--missing)' : 'rgba(26,58,92,0.2)' }}>{d.qty_missing || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: d.qty_ordered > 0 ? 'var(--ordered)' : 'rgba(26,58,92,0.2)' }}>{d.qty_ordered || '—'}</td>
+                      <td style={{ ...tdBase, fontWeight: 700, color: 'rgba(26,58,92,0.55)' }}>{total}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            </div>
+          )}
+        </Panel>
+      )}
+
+      {!query && (
+        <Panel style={{ padding: '3rem', textAlign: 'center' }}>
+          <p style={{ fontFamily: 'var(--font-d)', fontSize: '1.1rem', color: 'rgba(26,58,92,0.35)', margin: 0 }}>
+            Search for a card to see which decks use it and in what quantities.
+          </p>
+        </Panel>
+      )}
+    </div>
+  )
+}
+
 /* ── Page ──────────────────────────────────────────── */
 
 export function StatsPage() {
@@ -432,13 +627,7 @@ export function StatsPage() {
 
           {activeTab === 'per-deck' && <PerDeckTab decks={decks} />}
           {activeTab === 'buy-list' && <BuyListTab eras={eras} />}
-          {activeTab === 'per-card' && (
-            <Panel style={{ padding: '3rem', textAlign: 'center' }}>
-              <p style={{ fontFamily: 'var(--font-d)', fontSize: '1.3rem', color: 'rgba(26,58,92,0.5)' }}>
-                Card search coming soon — find any card and see which decks use it.
-              </p>
-            </Panel>
-          )}
+          {activeTab === 'per-card' && <PerCardTab />}
         </>
       )}
     </div>

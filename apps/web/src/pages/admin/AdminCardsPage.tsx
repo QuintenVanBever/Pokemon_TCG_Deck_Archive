@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { usePersistedState } from '../../lib/usePersistedState'
 import { adminS as S } from './AdminLayout'
 import { fetchAdminCards, fetchEraBlocks, searchPokemontcg, BASE } from '../../lib/api'
 import type { AdminCard, EraBlock } from '../../lib/api'
@@ -32,7 +33,7 @@ type DeleteModal = { cardId: number; cardName: string; decks: { id: number; name
 export function AdminCardsPage() {
   const [cards,   setCards]   = useState<AdminCard[]>([])
   const [blocks,  setBlocks]  = useState<EraBlock[]>([])
-  const [filters, setFilters] = useState({ name: '', supertype: '', era: '', set: '' })
+  const [filters, setFilters] = usePersistedState('admin:cards:filters', { name: '', supertype: '', era: '', set: '' })
   const [form,    setForm]    = useState<CardForm | null>(null)
   const [editId,  setEditId]  = useState<number | null>(null)
   const [showImport, setShowImport] = useState(false)

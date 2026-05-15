@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { usePersistedState } from '../../lib/usePersistedState'
 import { adminS as S } from './AdminLayout'
 import { fetchFormats, fetchEraBlocks, BASE } from '../../lib/api'
 import type { Format, EraBlock } from '../../lib/api'
@@ -47,10 +48,10 @@ export function AdminFormatsPage() {
   const [editId,   setEditId]   = useState<number | null>(null)
 
   // Filter + sort state
-  const [eraFilter, setEraFilter] = useState('')
+  const [eraFilter, setEraFilter] = usePersistedState('admin:formats:era', '')
   type SortCol = 'name' | 'era'
-  const [sortCol, setSortCol] = useState<SortCol>('era')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [sortCol, setSortCol] = usePersistedState<SortCol>('admin:formats:sortCol', 'era')
+  const [sortDir, setSortDir] = usePersistedState<'asc' | 'desc'>('admin:formats:sortDir', 'asc')
 
   // Set browser state
   const [allSets,     setAllSets]     = useState<PtcgSet[]>([])

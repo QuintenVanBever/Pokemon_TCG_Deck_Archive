@@ -324,6 +324,7 @@ export function HomePage() {
   const [loading, setLoading]       = useState(true)
   const [energyFilter, setEnergy]   = useState('all')
   const [eraFilter, setEra]         = useState('all')
+  const [formatFilter, setFormat]   = useState('all')
 
   useEffect(() => {
     fetchDecks().then(d => { setDecks(d); setLoading(false) })
@@ -346,19 +347,36 @@ export function HomePage() {
     }),
   ]
 
+  // Formats visible under the current era selection
+  const visibleFormats = decks
+    .filter(d => eraFilter === 'all' || d.era_slug === eraFilter)
+    .reduce<{ key: string; label: string }[]>((acc, d) => {
+      if (d.format && !acc.find(f => f.key === d.format))
+        acc.push({ key: d.format, label: d.format_name ?? d.format })
+      return acc
+    }, [])
+
+  const formatChips = [{ key: 'all', label: 'All Formats' }, ...visibleFormats]
+
   const filtered = decks.filter(d => {
     if (energyFilter !== 'all') {
       const types = d.energy_types ?? [d.energy_type]
       if (!types.includes(energyFilter)) return false
     }
-    if (eraFilter !== 'all' && d.era_slug !== eraFilter) return false
+    if (eraFilter   !== 'all' && d.era_slug !== eraFilter)   return false
+    if (formatFilter !== 'all' && d.format  !== formatFilter) return false
     return true
   })
 
+  const handleEraSelect = (key: string) => { setEra(key); setFormat('all') }
+
   return (
     <>
-      <FilterStrip label="Type"  chips={energyChips} active={energyFilter} onSelect={setEnergy} />
-      <FilterStrip label="Block" chips={eraChips}    active={eraFilter}    onSelect={setEra} />
+      <FilterStrip label="Type"   chips={energyChips} active={energyFilter} onSelect={setEnergy} />
+      <FilterStrip label="Block"  chips={eraChips}    active={eraFilter}    onSelect={handleEraSelect} />
+      {visibleFormats.length > 1 && (
+        <FilterStrip label="Format" chips={formatChips} active={formatFilter} onSelect={setFormat} />
+      )}
 
       <div style={{ maxWidth: 1600, margin: '0 auto', padding: '2rem 2rem 6rem' }}>
         <div style={{

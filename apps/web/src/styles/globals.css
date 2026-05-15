@@ -136,6 +136,14 @@ img { display: block; max-width: 100%; }
    ═══════════════════════════════════════════════════ */
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+/* Backdrop is hidden everywhere by default; only shown via .open on mobile */
+.admin-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 499;
+}
+
 @media (max-width: 768px) {
   /* Admin sidebar: slide-over on mobile */
   .admin-layout  { grid-template-columns: 1fr !important; }
@@ -151,12 +159,6 @@ img { display: block; max-width: 100%; }
     transition: transform 0.25s ease !important;
   }
   .admin-sidebar.open { transform: translateX(0) !important; }
-  .admin-backdrop {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 499;
-  }
   .admin-backdrop.open { display: block; }
   .admin-menu-btn { display: flex !important; }
 

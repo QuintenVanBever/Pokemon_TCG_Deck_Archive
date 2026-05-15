@@ -7,7 +7,7 @@ import { adminFetch } from '../../lib/adminAuth'
 import type { DeckDetail, DeckCard, EraBlock, AdminCard, Format } from '../../lib/api'
 import type { EnergyType } from '../../data/decks'
 
-const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water'] as const
+const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fairy', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water'] as const
 
 type ParsedLine   = { count: number; name: string; set: string; number: string }
 type ImportStatus = 'found' | 'needs-import' | 'not-found'
@@ -84,6 +84,9 @@ export function AdminDeckEditPage() {
   // Card hover preview
   const [cardPreview, setCardPreview] = useState<{ url: string; x: number; y: number } | null>(null)
 
+  // Swap printing modal
+  const [swapModal, setSwapModal] = useState<{ deckCardId: number; currentCardId: number; cardName: string; options: AdminCard[] } | null>(null)
+
   // TCG Live import state
   const [importOpen,     setImportOpen]     = useState(false)
   const [importText,     setImportText]     = useState('')
@@ -91,6 +94,10 @@ export function AdminDeckEditPage() {
   const [importCardEras, setImportCardEras] = useState<Record<number, number>>({})
   const [importBusy,     setImportBusy]     = useState(false)
   const [importMessage,  setImportMessage]  = useState<string | null>(null)
+  const [rowSearch,       setRowSearch]       = useState<Record<number, string>>({})
+  const [rowLocalResults, setRowLocalResults] = useState<Record<number, AdminCard[]>>({})
+  const [rowPtcgResults,  setRowPtcgResults]  = useState<Record<number, any[]>>({})
+  const rowSearchTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
 
   const load = async () => {
     const d = await fetchDeck(slug)
@@ -191,11 +198,79 @@ export function AdminDeckEditPage() {
     load()
   }
 
+  const openSwapModal = async (c: DeckCard) => {
+    const all = await fetchAdminCards({ name: c.name })
+    const options = all.filter(a => a.name === c.name || a.display_name === c.name)
+    setSwapModal({ deckCardId: c.deck_card_id, currentCardId: c.card_id, cardName: c.name, options })
+  }
+
+  const swapCard = async (newCardId: number) => {
+    if (!deck || !swapModal) return
+    await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${swapModal.deckCardId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: newCardId }),
+    })
+    setSwapModal(null)
+    load()
+  }
+
   const removeCard = async (deckCardId: number) => {
     if (!deck) return
     await adminFetch(`${BASE}/api/admin/decks/${deck.id}/cards/${deckCardId}`, { method: 'DELETE' })
     setDeleteConfirm(null)
     load()
+  }
+
+  const clearRowSearch = (idx: number) => {
+    setRowSearch(prev => ({ ...prev, [idx]: '' }))
+    setRowLocalResults(prev => ({ ...prev, [idx]: [] }))
+    setRowPtcgResults(prev => ({ ...prev, [idx]: [] }))
+  }
+
+  const searchRow = (idx: number, q: string) => {
+    setRowSearch(prev => ({ ...prev, [idx]: q }))
+    if (rowSearchTimers.current[idx]) clearTimeout(rowSearchTimers.current[idx])
+    if (!q.trim()) {
+      setRowLocalResults(prev => ({ ...prev, [idx]: [] }))
+      setRowPtcgResults(prev => ({ ...prev, [idx]: [] }))
+      return
+    }
+    rowSearchTimers.current[idx] = setTimeout(async () => {
+      // Parse "Name SET" syntax, e.g. "Snorlax LOR" → name=Snorlax, ptcgo_code=LOR
+      const parts = q.trim().split(/\s+/)
+      const lastPart = parts[parts.length - 1]
+      const looksLikeSetCode = parts.length > 1 && /^[A-Z0-9-]{2,8}$/.test(lastPart)
+      const name     = looksLikeSetCode ? parts.slice(0, -1).join(' ') : q.trim()
+      const setCode  = looksLikeSetCode ? lastPart : undefined
+
+      const [local, ptcgRes] = await Promise.all([
+        fetchAdminCards({ name }),
+        searchPokemontcg(name, setCode ? { ptcgo_code: setCode } : undefined),
+      ])
+      setRowLocalResults(prev => ({ ...prev, [idx]: local.slice(0, 5) }))
+      setRowPtcgResults(prev => ({ ...prev, [idx]: ptcgRes.data.slice(0, 8) }))
+    }, 300)
+  }
+
+  const assignRowCard = (idx: number, card: AdminCard) => {
+    setImportResults(prev => {
+      if (!prev) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], card, ptcgCard: null, status: 'found' }
+      return next
+    })
+    clearRowSearch(idx)
+  }
+
+  const assignRowPtcgCard = (idx: number, ptcgCard: any) => {
+    setImportResults(prev => {
+      if (!prev) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], card: null, ptcgCard, status: 'needs-import' }
+      return next
+    })
+    clearRowSearch(idx)
   }
 
   const parseAndLookup = async () => {
@@ -282,7 +357,7 @@ export function AdminDeckEditPage() {
       if (res.ok) ok++; else skipped++
     }
     setImportMessage(`Imported ${ok} card${ok !== 1 ? 's' : ''} as ${mode}${skipped > 0 ? ` · ${skipped} skipped` : ''}`)
-    setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false); setImportCardEras({})
+    setImportResults(null); setImportText(''); setImportOpen(false); setImportBusy(false); setImportCardEras({}); setRowSearch({}); setRowLocalResults({}); setRowPtcgResults({})
     load()
   }
 
@@ -457,7 +532,7 @@ export function AdminDeckEditPage() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#888' }}>Import from TCG Live</div>
           <button
             style={S.btnS}
-            onClick={() => { setImportOpen(o => !o); setImportResults(null); setImportMessage(null); setImportCardEras({}) }}
+            onClick={() => { setImportOpen(o => !o); setImportResults(null); setImportMessage(null); setImportCardEras({}); setRowSearch({}); setRowLocalResults({}); setRowPtcgResults({}) }}
           >
             {importOpen ? 'Cancel' : 'Paste decklist ↓'}
           </button>
@@ -475,7 +550,7 @@ export function AdminDeckEditPage() {
               style={{ ...S.input, height: 160, resize: 'vertical', fontFamily: 'monospace', fontSize: 12, marginBottom: 8 }}
               placeholder={'Paste your TCG Live export here:\n\nPokémon: 4\n4 Charizard ex SVI 6\n\nTrainer: 4\n4 Arven OBF 186\n\nEnergy: 4\n4 Fire Energy SVE 1'}
               value={importText}
-              onChange={e => { setImportText(e.target.value); setImportResults(null) }}
+              onChange={e => { setImportText(e.target.value); setImportResults(null); setRowSearch({}); setRowLocalResults({}); setRowPtcgResults({}) }}
             />
             <button
               style={{ ...S.btnP, marginBottom: importResults ? 14 : 0 }}
@@ -492,7 +567,7 @@ export function AdminDeckEditPage() {
                   <thead>
                     <tr>
                       <th style={{ ...S.th, width: 36 }}></th>
-                      {['Qty', 'Parsed name', 'Set', '#', 'Matched card', 'Era', 'Status'].map(h => (
+                      {['Qty', 'Parsed name', 'Set', '#', 'Card ID', 'Matched card', 'Era', 'Status'].map(h => (
                         <th key={h} style={S.th}>{h}</th>
                       ))}
                     </tr>
@@ -522,7 +597,65 @@ export function AdminDeckEditPage() {
                           <td style={{ ...S.td, fontWeight: 600 }}>{r.name}</td>
                           <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.set}</td>
                           <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.number}</td>
-                          <td style={S.td}>{r.card ? (r.card.display_name ?? r.card.name) : r.ptcgCard?.name ?? '—'}</td>
+                          <td style={{ ...S.td, color: '#888', fontFamily: 'monospace' }}>{r.ptcgCard?.id}</td>
+                          <td style={{ ...S.td, minWidth: 180 }}>
+                            {r.status === 'not-found' ? (
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  style={{ ...S.input, fontSize: 11, padding: '3px 6px', width: 160 }}
+                                  value={rowSearch[i] ?? ''}
+                                  onChange={e => searchRow(i, e.target.value)}
+                                  placeholder="Search…"
+                                />
+                                {((rowLocalResults[i]?.length ?? 0) > 0 || (rowPtcgResults[i]?.length ?? 0) > 0) && (
+                                  <div style={{ position: 'absolute', top: '100%', left: 0, width: 260, background: '#fff', border: '1.5px solid #D0D5DD', borderTop: 'none', zIndex: 20, maxHeight: 280, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
+                                    {(rowLocalResults[i]?.length ?? 0) > 0 && (
+                                      <>
+                                        <div style={{ padding: '4px 8px', fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', color: '#aaa', background: '#FAFBFC', borderBottom: '1px solid #F0F2F5', textTransform: 'uppercase' }}>Catalog</div>
+                                        {rowLocalResults[i].map(opt => (
+                                          <div
+                                            key={opt.id}
+                                            onClick={() => assignRowCard(i, opt)}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #F0F2F5' }}
+                                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#F5F7FA'}
+                                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#fff'}
+                                          >
+                                            {opt.image_ext_url && <img src={opt.image_ext_url} alt="" style={{ height: 28, aspectRatio: '63/88', objectFit: 'cover', flexShrink: 0 }} />}
+                                            <span>
+                                              <span style={{ fontWeight: 700 }}>{opt.display_name ?? opt.name}</span>
+                                              <span style={{ color: '#aaa', fontSize: 10, display: 'block' }}>{opt.set_name}</span>
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {(rowPtcgResults[i]?.length ?? 0) > 0 && (
+                                      <>
+                                        <div style={{ padding: '4px 8px', fontSize: 9, fontWeight: 900, letterSpacing: '0.08em', color: '#1E78C4', background: '#F0F8FF', borderBottom: '1px solid #F0F2F5', textTransform: 'uppercase' }}>TCG API — will import</div>
+                                        {rowPtcgResults[i].map((opt: any) => (
+                                          <div
+                                            key={opt.id}
+                                            onClick={() => assignRowPtcgCard(i, opt)}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #F0F2F5' }}
+                                            onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#F0F8FF'}
+                                            onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#fff'}
+                                          >
+                                            {opt.images?.small && <img src={opt.images.small} alt="" style={{ height: 28, aspectRatio: '63/88', objectFit: 'cover', flexShrink: 0 }} />}
+                                            <span>
+                                              <span style={{ fontWeight: 700 }}>{opt.name}</span>
+                                              <span style={{ color: '#aaa', fontSize: 10, display: 'block' }}>{opt.set?.name} · {opt.id}</span>
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              r.card ? (r.card.display_name ?? r.card.name) : r.ptcgCard?.name ?? '—'
+                            )}
+                          </td>
                           <td style={{ ...S.td, minWidth: 120 }}>
                             {r.status === 'needs-import' ? (
                               <select
@@ -708,7 +841,7 @@ export function AdminDeckEditPage() {
                             <option value="3">3</option>
                           </select>
                         </td>
-                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right', width: 120 }}>
+                        <td style={{ ...S.td, whiteSpace: 'nowrap', textAlign: 'right', width: 140 }}>
                           {isConfirming ? (
                             <>
                               <span style={{ fontSize: 12, color: '#CC3333', marginRight: 6 }}>Remove?</span>
@@ -716,7 +849,10 @@ export function AdminDeckEditPage() {
                               <button style={S.btnS} onClick={() => setDeleteConfirm(null)}>No</button>
                             </>
                           ) : (
-                            <button style={S.btnD} onClick={() => setDeleteConfirm(c.deck_card_id)}>✕</button>
+                            <>
+                              <button style={{ ...S.btnS, marginRight: 4 }} onClick={() => openSwapModal(c)} title="Change printing">⇄</button>
+                              <button style={S.btnD} onClick={() => setDeleteConfirm(c.deck_card_id)}>✕</button>
+                            </>
                           )}
                         </td>
                       </tr>
@@ -738,6 +874,61 @@ export function AdminDeckEditPage() {
           borderRadius: 6, overflow: 'hidden',
         }}>
           <img src={cardPreview.url} alt="" style={{ height: 260, aspectRatio: '63/88', objectFit: 'cover', display: 'block' }} />
+        </div>
+      )}
+
+      {swapModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}
+          onClick={e => { if (e.target === e.currentTarget) setSwapModal(null) }}
+        >
+          <div style={{ background: '#fff', width: 520, maxWidth: '90vw', padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.22)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#1a3a5c', marginBottom: 16 }}>
+              Change printing — {swapModal.cardName}
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {swapModal.options.length === 0 ? (
+                <div style={{ color: '#888', fontSize: 13, padding: '12px 0' }}>No other printings found in the catalog.</div>
+              ) : swapModal.options.map(opt => {
+                const isCurrent = opt.id === swapModal.currentCardId
+                const imgUrl = opt.image_ext_url || (opt.image_r2_key ? `${BASE}/api/images/${opt.image_r2_key}` : null)
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() => { if (!isCurrent) swapCard(opt.id) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px',
+                      border: isCurrent ? '2px solid #1a3a5c' : '1.5px solid #E8ECF0',
+                      background: isCurrent ? '#F0F4FF' : '#fff',
+                      cursor: isCurrent ? 'default' : 'pointer',
+                    }}
+                    onMouseEnter={e => { if (!isCurrent) (e.currentTarget as HTMLDivElement).style.background = '#F5F7FA' }}
+                    onMouseLeave={e => { if (!isCurrent) (e.currentTarget as HTMLDivElement).style.background = '#fff' }}
+                  >
+                    {imgUrl
+                      ? <img src={imgUrl} alt="" style={{ height: 60, aspectRatio: '63/88', objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: 43, height: 60, background: '#F0F2F5', flexShrink: 0 }} />
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{opt.display_name ?? opt.name}</div>
+                      <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                        {opt.set_name ?? '—'}{opt.set_id ? ` (${opt.set_id})` : ''}
+                      </div>
+                      {opt.pokemontcg_id && (
+                        <div style={{ fontSize: 10, color: '#bbb', fontFamily: 'monospace', marginTop: 1 }}>{opt.pokemontcg_id}</div>
+                      )}
+                    </div>
+                    {isCurrent && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1a3a5c', flexShrink: 0 }}>Current</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+              <button style={S.btnS} onClick={() => setSwapModal(null)}>Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

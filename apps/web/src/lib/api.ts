@@ -61,6 +61,7 @@ export interface AdminCard {
 
 export interface DeckCard {
   deck_card_id:      number
+  card_id:           number
   fan_slot:          number | null
   name:              string
   pokemontcg_id:     string | null
@@ -157,6 +158,57 @@ export async function fetchBuylist(params?: {
   const res  = await fetch(url.toString())
   const json = await res.json() as { data: BuylistRow[] }
   return json.data
+}
+
+export interface CardSearchResult {
+  id:            number
+  name:          string
+  supertype:     string
+  set_name:      string | null
+  set_id:        string | null
+  image_url:     string | null
+  pokemontcg_id: string | null
+  era_name:      string | null
+  era_color:     string | null
+  deck_count:    number
+  total_real:    number
+  total_proxy:   number
+  total_missing: number
+  total_ordered: number
+}
+
+export interface CardDeckRow {
+  id:                   number
+  name:                 string
+  slug:                 string
+  era_name:             string
+  era_key:              string
+  era_color:            string
+  era_badge_text_color: string
+  qty_real:             number
+  qty_proxy:            number
+  qty_missing:          number
+  qty_ordered:          number
+}
+
+export async function fetchCardSearch(q: string): Promise<CardSearchResult[]> {
+  try {
+    const url = new URL(`${BASE}/api/stats/card-search`, window.location.href)
+    url.searchParams.set('q', q)
+    const res = await fetch(url.toString())
+    if (!res.ok) return []
+    const json = await res.json() as { data: CardSearchResult[] }
+    return json.data
+  } catch { return [] }
+}
+
+export async function fetchCardDecks(cardId: number): Promise<CardDeckRow[]> {
+  try {
+    const res = await fetch(`${BASE}/api/stats/card-decks/${cardId}`)
+    if (!res.ok) return []
+    const json = await res.json() as { data: CardDeckRow[] }
+    return json.data
+  } catch { return [] }
 }
 
 // ── Admin helpers ──────────────────────────────────────────────────────

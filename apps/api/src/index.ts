@@ -209,7 +209,7 @@ app.get('/api/decks/:slug', async c => {
     `).bind(slug),
 
     c.env.DB.prepare(`
-      SELECT dc.id AS deck_card_id, dc.fan_slot,
+      SELECT dc.id AS deck_card_id, dc.card_id, dc.fan_slot,
              COALESCE(c.display_name, c.name) AS name,
              c.pokemontcg_id,
              c.supertype,
@@ -258,6 +258,7 @@ app.get('/api/decks/:slug', async c => {
       counts,
       cards: cards.map(r => ({
         deck_card_id:      r.deck_card_id,
+        card_id:           r.card_id,
         fan_slot:          r.fan_slot ?? null,
         name:              r.name,
         pokemontcg_id:     r.pokemontcg_id ?? null,
@@ -361,6 +362,88 @@ app.get('/api/stats/buylist', async c => {
         missing: r.missing, proxied: r.proxied, ordered: r.ordered, deck_count: r.deck_count,
       }
     }),
+  })
+})
+
+app.get('/api/stats/card-search', async c => {
+  const q = (c.req.query('q') ?? '').trim()
+  if (!q) return c.json({ data: [] })
+  const like   = `%${q}%`
+  const origin = new URL(c.req.url).origin
+  const { results } = await c.env.DB.prepare(`
+    SELECT
+      c.id,
+      COALESCE(c.display_name, c.name) AS name,
+      c.supertype,
+      c.set_name, c.set_id,
+      c.image_ext_url, c.image_r2_key,
+      c.pokemontcg_id,
+      eb.name  AS era_name,
+      eb.color AS era_color,
+      COUNT(DISTINCT dc.deck_id)       AS deck_count,
+      SUM(COALESCE(dc.qty_real,    0)) AS total_real,
+      SUM(COALESCE(dc.qty_proxy,   0)) AS total_proxy,
+      SUM(COALESCE(dc.qty_missing, 0)) AS total_missing,
+      SUM(COALESCE(dc.qty_ordered, 0)) AS total_ordered
+    FROM cards c
+    LEFT JOIN deck_cards dc  ON dc.card_id  = c.id
+    LEFT JOIN era_blocks eb  ON eb.id       = c.era_block_id
+    WHERE LOWER(c.name) LIKE LOWER(?) OR LOWER(COALESCE(c.display_name,'')) LIKE LOWER(?)
+    GROUP BY c.id
+    ORDER BY deck_count DESC, c.name
+    LIMIT 20
+  `).bind(like, like).all()
+  return c.json({
+    data: (results as any[]).map(r => ({
+      id:            r.id,
+      name:          r.name,
+      supertype:     r.supertype,
+      set_name:      r.set_name  ?? null,
+      set_id:        r.set_id    ?? null,
+      image_url:     resolveImageUrl(origin, r.image_r2_key, r.image_ext_url),
+      pokemontcg_id: r.pokemontcg_id ?? null,
+      era_name:      r.era_name  ?? null,
+      era_color:     r.era_color ?? null,
+      deck_count:    r.deck_count,
+      total_real:    r.total_real,
+      total_proxy:   r.total_proxy,
+      total_missing: r.total_missing,
+      total_ordered: r.total_ordered,
+    })),
+  })
+})
+
+app.get('/api/stats/card-decks/:id', async c => {
+  const cardId = Number(c.req.param('id'))
+  const { results } = await c.env.DB.prepare(`
+    SELECT
+      d.id, d.name, d.slug,
+      eb.name             AS era_name,
+      eb.key              AS era_key,
+      eb.color            AS era_color,
+      eb.badge_text_color AS era_badge_text_color,
+      eb.sort_order       AS era_sort,
+      dc.qty_real, dc.qty_proxy, dc.qty_missing, dc.qty_ordered
+    FROM deck_cards dc
+    JOIN decks      d  ON d.id  = dc.deck_id
+    JOIN era_blocks eb ON eb.id = d.era_block_id
+    WHERE dc.card_id = ?
+    ORDER BY eb.sort_order, d.name
+  `).bind(cardId).all()
+  return c.json({
+    data: (results as any[]).map(r => ({
+      id:                   r.id,
+      name:                 r.name,
+      slug:                 r.slug,
+      era_name:             r.era_name,
+      era_key:              r.era_key,
+      era_color:            r.era_color,
+      era_badge_text_color: r.era_badge_text_color ?? '#ffffff',
+      qty_real:             r.qty_real,
+      qty_proxy:            r.qty_proxy,
+      qty_missing:          r.qty_missing,
+      qty_ordered:          r.qty_ordered,
+    })),
   })
 })
 
@@ -769,7 +852,7 @@ app.post('/api/admin/decks/:id/cards', async c => {
 app.patch('/api/admin/decks/:id/cards/:deckCardId', async c => {
   const deckId     = Number(c.req.param('id'))
   const deckCardId = Number(c.req.param('deckCardId'))
-  const body       = await c.req.json<{ qty_real?: number; qty_proxy?: number; qty_missing?: number; qty_ordered?: number; fan_slot?: number | null }>()
+  const body       = await c.req.json<{ qty_real?: number; qty_proxy?: number; qty_missing?: number; qty_ordered?: number; fan_slot?: number | null; card_id?: number }>()
 
   const sets: string[] = []; const params: any[] = []
 
@@ -809,6 +892,17 @@ app.patch('/api/admin/decks/:id/cards/:deckCardId', async c => {
   if ('fan_slot' in body) {
     sets.push('fan_slot = ?')
     params.push(body.fan_slot ?? null)
+  }
+
+  if (body.card_id !== undefined) {
+    const conflict = await c.env.DB.prepare(
+      'SELECT id FROM deck_cards WHERE deck_id = ? AND card_id = ? AND id != ?'
+    ).bind(deckId, body.card_id, deckCardId).first()
+    if (conflict) {
+      return c.json({ success: false, error: 'That card is already in this deck' }, 422)
+    }
+    sets.push('card_id = ?')
+    params.push(body.card_id)
   }
 
   if (sets.length) {

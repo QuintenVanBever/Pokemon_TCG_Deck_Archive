@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { ENERGY_META, BAR_COLORS, deriveDeckStatus } from '../data/decks';
 import { fetchDeck, fetchDecks, type DeckDetail, type DeckSummary, type DeckCard } from '../lib/api';
+import { getAdminPassword } from '../lib/adminAuth';
 import type { EnergyType } from '../data/decks';
 
 const CARD_BACK = 'https://images.pokemontcg.io/cardback.png';
@@ -591,7 +592,7 @@ export function DeckDetailPage() {
       <div className="deck-detail-main" style={{ overflowY: 'auto', padding: '24px 28px 32px', background: 'var(--sky-l)' }}>
         {/* Deck header */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Link
               to="/decks"
               style={{
@@ -603,6 +604,20 @@ export function DeckDetailPage() {
               }}>
               ← All Decks
             </Link>
+            {getAdminPassword() && (
+              <Link
+                to="/admin/decks/$slug/edit"
+                params={{ slug: deck.slug }}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  color: 'rgba(26,58,92,0.35)',
+                  textDecoration: 'none',
+                }}>
+                Edit ✎
+              </Link>
+            )}
           </div>
           <div
             style={{

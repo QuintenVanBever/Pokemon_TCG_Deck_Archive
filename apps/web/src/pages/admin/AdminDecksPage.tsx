@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { usePersistedState } from '../../lib/usePersistedState'
 import { Link } from '@tanstack/react-router'
 import { adminS as S } from './AdminLayout'
 import { fetchDecks, fetchEraBlocks, BASE } from '../../lib/api'
 import type { DeckSummary, EraBlock } from '../../lib/api'
 import { adminFetch } from '../../lib/adminAuth'
-import { ENERGY_META } from '../../data/decks'
+import { ENERGY_META, deriveDeckStatus } from '../../data/decks'
 import type { EnergyType } from '../../data/decks'
 
-const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water']
+const ENERGY_TYPES = ['colorless', 'darkness', 'dragon', 'fairy', 'fighting', 'fire', 'grass', 'lightning', 'metal', 'psychic', 'water']
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const emptyForm = () => ({
   name: '', slug: '', era_block_id: '', format_id: '', energy_type: 'colorless', intended_size: '60', primer_md: '',
 })
 
-type SortCol = 'name' | 'type' | 'format' | 'era'
+type SortCol = 'name' | 'type' | 'format' | 'era' | 'status'
+
+const STATUS_ORDER = { playable: 0, awaiting: 1, wip: 2 }
+const STATUS_LABEL: Record<string, string> = { playable: 'Playable', awaiting: 'Awaiting', wip: 'WIP' }
+const STATUS_COLOR: Record<string, string> = { playable: '#2E8B57',  awaiting: '#1E78C4',  wip: '#CC3333' }
 
 export function AdminDecksPage() {
   const [decks,   setDecks]   = useState<DeckSummary[]>([])
@@ -23,11 +28,12 @@ export function AdminDecksPage() {
   const [form,    setForm]    = useState<ReturnType<typeof emptyForm> | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
 
-  // Filter + sort state
-  const [eraFilter,    setEraFilter]    = useState('')
-  const [formatFilter, setFormatFilter] = useState('')
-  const [sortCol,      setSortCol]      = useState<SortCol>('era')
-  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
+  // Filter + sort state — persisted across navigation
+  const [eraFilter,    setEraFilter]    = usePersistedState('admin:decks:era',    '')
+  const [formatFilter, setFormatFilter] = usePersistedState('admin:decks:format', '')
+  const [statusFilter, setStatusFilter] = usePersistedState('admin:decks:status', '')
+  const [sortCol,      setSortCol]      = usePersistedState<SortCol>('admin:decks:sortCol', 'era')
+  const [sortDir,      setSortDir]      = usePersistedState<'asc' | 'desc'>('admin:decks:sortDir', 'asc')
 
   const load = () => fetchDecks().then(setDecks)
 
@@ -60,10 +66,12 @@ export function AdminDecksPage() {
   }, [decks, eraFilter])
 
   const filteredDecks = useMemo(() => {
-    let result = decks.filter(d =>
-      (!eraFilter    || d.era_slug === eraFilter) &&
-      (!formatFilter || d.format   === formatFilter)
-    )
+    let result = decks.filter(d => {
+      if (eraFilter    && d.era_slug !== eraFilter)   return false
+      if (formatFilter && d.format   !== formatFilter) return false
+      if (statusFilter && deriveDeckStatus(d.counts, d.intended_size) !== statusFilter) return false
+      return true
+    })
 
     result = [...result].sort((a, b) => {
       const eraA = eraOrder[a.era_slug] ?? 99
@@ -78,6 +86,10 @@ export function AdminDecksPage() {
         cmp = fmtA.localeCompare(fmtB) || eraA - eraB || a.name.localeCompare(b.name)
       } else if (sortCol === 'type') {
         cmp = a.energy_type.localeCompare(b.energy_type) || a.name.localeCompare(b.name)
+      } else if (sortCol === 'status') {
+        const sa = STATUS_ORDER[deriveDeckStatus(a.counts, a.intended_size)]
+        const sb = STATUS_ORDER[deriveDeckStatus(b.counts, b.intended_size)]
+        cmp = sa - sb || a.name.localeCompare(b.name)
       } else {
         cmp = a.name.localeCompare(b.name)
       }
@@ -85,7 +97,7 @@ export function AdminDecksPage() {
     })
 
     return result
-  }, [decks, eraFilter, formatFilter, sortCol, sortDir, eraOrder])
+  }, [decks, eraFilter, formatFilter, statusFilter, sortCol, sortDir, eraOrder])
 
   const createDeck = async () => {
     if (!form) return
@@ -237,8 +249,17 @@ export function AdminDecksPage() {
               {formatOptions.map(f => <option key={f.slug} value={f.slug}>{f.name}</option>)}
             </select>
           </div>
-          {(eraFilter || formatFilter) && (
-            <button style={S.btnS} onClick={() => { setEraFilter(''); setFormatFilter('') }}>Clear</button>
+          <div style={S.field}>
+            <label style={S.label}>Status</label>
+            <select style={S.select} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <option value="">All statuses</option>
+              <option value="playable">Playable</option>
+              <option value="awaiting">Awaiting</option>
+              <option value="wip">WIP</option>
+            </select>
+          </div>
+          {(eraFilter || formatFilter || statusFilter) && (
+            <button style={S.btnS} onClick={() => { setEraFilter(''); setFormatFilter(''); setStatusFilter('') }}>Clear</button>
           )}
           <span style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa', alignSelf: 'center' }}>
             {filteredDecks.length} / {decks.length} decks
@@ -252,6 +273,7 @@ export function AdminDecksPage() {
             <SortTh col="type">Type</SortTh>
             <SortTh col="format">Format</SortTh>
             <SortTh col="era">Era</SortTh>
+            <SortTh col="status">Status</SortTh>
             <th style={S.th}>Real</th>
             <th style={S.th}>Proxy</th>
             <th style={S.th}>Missing</th>
@@ -267,12 +289,15 @@ export function AdminDecksPage() {
                   <td style={{ ...S.td, fontWeight: 700 }}>{d.name}</td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
                     {typeMeta
-                      ? <span style={{ display: 'inline-block', background: typeMeta.color, color: '#fff', padding: '2px 6px', fontSize: 10, fontWeight: 900 }}>{typeMeta.abbr}</span>
+                      ? <span style={{ display: 'inline-block', background: typeMeta.color, color: '#fff', padding: '2px 6px', fontSize: 10, fontWeight: 900 }}>{typeMeta.label}</span>
                       : <span style={{ color: '#888' }}>{d.energy_type}</span>}
                   </td>
                   <td style={{ ...S.td, color: '#888', fontSize: 12 }}>{d.format_name ?? d.format}</td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
                     <span style={{ display: 'inline-block', background: d.era_color, color: d.era_badge_text_color, padding: '2px 6px', fontSize: 10, fontWeight: 900 }}>{d.era}</span>
+                  </td>
+                  <td style={S.td}>
+                    {(() => { const s = deriveDeckStatus(d.counts, d.intended_size); return <span style={{ fontWeight: 700, fontSize: 11, color: STATUS_COLOR[s] }}>{STATUS_LABEL[s]}</span> })()}
                   </td>
                   <td style={{ ...S.td, color: '#2E8B57', fontWeight: 700 }}>{d.counts.real}</td>
                   <td style={{ ...S.td, color: '#7B52C4' }}>{d.counts.proxy || '—'}</td>
@@ -289,7 +314,7 @@ export function AdminDecksPage() {
               )
             })}
             {filteredDecks.length === 0 && (
-              <tr><td colSpan={10} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>No decks match the current filters</td></tr>
+              <tr><td colSpan={11} style={{ ...S.td, color: '#aaa', fontStyle: 'italic', textAlign: 'center', padding: 24 }}>No decks match the current filters</td></tr>
             )}
           </tbody>
         </table>
